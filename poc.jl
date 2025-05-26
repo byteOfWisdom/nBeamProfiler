@@ -65,8 +65,9 @@ scint_grid = shift(pop_grid(scint, bins, bins, stride), 19, 19)
 
 measure_grid = conv(beam_grid, scint_grid)
 
-reconstructed = lucy(measure_grid, scint_grid, iterations=1000)
-reconstructed = reconstructed / maximum(reconstructed)
+#reconstructed = lucy(measure_grid, scint_grid, iterations=1000)
+reconstructed = deconvolution(measure_grid, scint_grid)[1]
+#reconstructed = reconstructed / maximum(reconstructed)
 
 delta = reconstructed - beam_grid
 

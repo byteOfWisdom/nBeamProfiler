@@ -92,7 +92,7 @@ def estimate_hits(
 def sample_beam(x: float, y: float) -> float:
     amp = 10.
     sigma_sq_x = 70.
-    sigma_sq_y = 1000.
+    sigma_sq_y = 200.
     return amp * np.exp(- (((x - 50.) ** 2) / (2 * sigma_sq_x)) - (((y - 50.) ** 2) / (2 * sigma_sq_y)))
 
 
@@ -104,13 +104,12 @@ beam_shape = sample_beam
 data = np.transpose(np.array(list(map(path, np.linspace(0, 1100, 1000)))))
 #print(data)
 y, x = np.meshgrid(np.linspace(0, 100, 1000), np.linspace(0, 100, 1000))
-"""
 plt.pcolormesh(x, y, beam_shape(x, y))
 plt.scatter(data[0], data[1], marker='.')
 axes=plt.gca()
 axes.set_aspect(1)
 plt.show()
-"""
+
 
 # %%
 x, y = np.meshgrid(np.linspace(0, 100, 1000), np.linspace(0, 100, 1000))

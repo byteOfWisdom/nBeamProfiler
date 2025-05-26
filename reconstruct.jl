@@ -1,9 +1,11 @@
+using Base: absdiff
 using FFTW
 using CSV
-using Deconvolution
+#using Deconvolution
 using DeconvOptim
 using Plots
 using Images
+using LsqFit
 
 
 cols(a) = [view(a, :, i) for i in 1:size(a, 2)]
@@ -100,12 +102,41 @@ end
 
 num_grid = even_grid(fluency)
 
-scint = shift(pop_grid(scint_func, nrows, nrows, xstep, ystep), convert(Int, nrows / 2) - 2, convert(Int, nrows / 2) - 2)
+scint = shift(pop_grid(scint_func, nrows, nrows, xstep, ystep), convert(Int, nrows / 2) - 1, convert(Int, nrows / 2) - 1)
 
-beam = lucy(num_grid, scint, iterations=10)
+num_grid = num_grid / maximum(num_grid)
+beam = deconvolution(num_grid, scint, regularizer=Tikhonov(), iterations=25)[1]
+beam = beam / maximum(beam)
 
 h1 = heatmap(num_grid, title="measured")
 h2 = heatmap(scint, title="scintilator")
 h3 = heatmap(beam, title="cal beam")
-plot(h1, h2, h3, layout=(2, 2))
+h4 = heatmap(conv(beam, scint), title="reconvoluted")
+plot(h1, h2, h3, h4, layout=(2, 2))
+
+
+# fit 2d gaussian as test
+xs = []
+ys = []
+values = []
+for x_bin in range(1, nrows + 1)
+    for y_bin in range(1, nrows + 1)
+        global xs = append!(xs, x_bin * xstep)
+        global ys = append!(ys, y_bin * ystep)
+        global values = append!(values, beam[x_bin, y_bin])
+    end
+end
+
+function two_d_gauss(xy, params)
+    δx, δy, x0, y0, amp = params
+    x = xy[:, 1]
+    y = xy[:, 2]
+    return amp .* exp.(-((x .- x0) .^ 2 ./ δx) - ((y .- y0) .^ 2 ./ δy))
+end
+
+xy_tuples = hcat(xs, ys)
+
+fit = LsqFit.curve_fit(two_d_gauss, xy_tuples, values, [50.0, 50.0, 50.0, 50.0, 1.0])
+println(fit.param)
+
 gui()
