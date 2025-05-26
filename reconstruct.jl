@@ -23,15 +23,6 @@ xstep = xsize / nrows
 row_y(y) = convert(Int64, round(abs(y) / ystep)) + 1
 col_x(x) = convert(Int64, round(abs(x) / xstep)) + 1
 
-function scint_psf(x, y)
-    δx = 100.0
-    δy = 100.0
-    x -= xsize / 2.0
-    y -= ysize / 2.0
-    return exp(-(x^2 / δx) - (y^2 / δy))
-end
-
-
 function even_grid(samples)
     # bunch data into even chunks
     grid = [[[] for ny in range(1, nrows + 1)] for nx in range(1, nrows + 1)]
@@ -46,8 +37,8 @@ function even_grid(samples)
 
     num_grid = [[0.0 for ny in range(1, nrows + 1)] for nx in range(1, nrows + 1)]
 
-    for x in range(1, nrows)
-        for y in range(1, nrows)
+    for x in range(1, nrows + 1)
+        for y in range(1, nrows + 1)
             if length(grid[x][y]) == 0
                 grid[x][y] = [0.0]
             end
@@ -60,21 +51,61 @@ function even_grid(samples)
 end
 
 
+function scint_func(x, y)
+    size = 40.0
+    x = x - 50.0
+    y = y - 50.0
+    #    x = x % (40 * 2.5)
+    #    y = y % (40 * 2.5)
+    #if x <= size && y <= size && x >= 0.0 && y >= 0.0
+    if x^2 < size^2 && y^2 < size^2
+        return 1.0
+    end
+    return 0.0
+end
+
+function pop_grid(f, xbins, ybins, stride)
+    grid = [[f(x * stride, y * stride) for y in range(1, ybins + 1)] for x in range(1, xbins + 1)]
+    return reduce(hcat, grid)'
+end
+
+function shift(mat, rows, cols)
+    x, y = size(mat)
+    res = fill(0.0, (x, y))
+    for n in range(1, x)
+        sn = n + rows
+        if sn < 1
+            sn += x
+        elseif sn > x
+            sn -= x
+        end
+        for m in range(1, y)
+            sm = m + cols
+            if sm < 1
+                sm += y
+            elseif sm > y
+                sm -= y
+            end
+            res[n, m] = mat[sn, sm]
+        end
+    end
+
+    return res
+end
+
+function pop_grid(f, xbins, ybins, stride_x, stride_y)
+    grid = [[f(x * stride_x, y * stride_y) for y in range(1, ybins + 1)] for x in range(1, xbins + 1)]
+    return reduce(hcat, grid)'
+end
+
 num_grid = even_grid(fluency)
 
-scint_size = 40.0
-scint = fill(0.0, (nrows + 1, nrows + 1))
-sx = col_x(scint_size / 4)
-sy = row_y(scint_size / 4)
+scint = shift(pop_grid(scint_func, nrows, nrows, xstep, ystep), convert(Int, nrows / 2) - 2, convert(Int, nrows / 2) - 2)
 
-scint[1:sx, 1:sy] .= 1.0
-scint[nrows-sx+1:nrows+1, 1:sy] .= 1.0
-scint[1:sx, nrows+1-sy:nrows+1] .= 1.0
-scint[nrows-sx+1:nrows+1, nrows+1-sy:nrows+1] .= 1.0
+beam = lucy(num_grid, scint, iterations=10)
 
-beam = lucy(num_grid, scint, iterations=1000)
-
-#heatmap(temp_scint)
-heatmap(scint)
-#heatmap(num_grid)
+h1 = heatmap(num_grid, title="measured")
+h2 = heatmap(scint, title="scintilator")
+h3 = heatmap(beam, title="cal beam")
+plot(h1, h2, h3, layout=(2, 2))
 gui()

@@ -64,7 +64,7 @@ def area_at(pos: Tuple[float, float], shape: Callable[[float, float], float]) ->
 scint_size = 40.
 @njit
 def square(x: float, y: float):
-    return np.exp(- (x**2 + y**2) / (50000.)) ** 1000.
+    #return np.exp(- (x**2 + y**2) / (50000.)) ** 1000.
     return 1. if x ** 2 < scint_size ** 2 and y ** 2 < scint_size ** 2 else 0.
 
 
