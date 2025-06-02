@@ -1,11 +1,10 @@
 using FFTW
 using CSV
-using Deconvolution
 using DeconvOptim
 using Plots
 using Images
 
-function beam(x, y)
+function gauss_beam(x, y)
     δx = 100.0
     δy = 400.0
     offset_x = 50.0
@@ -15,14 +14,19 @@ function beam(x, y)
     return exp(-(x^2 / δx) - (y^2 / δy))
 end
 
+function triple_gauss(x, y)
+    return gauss_beam(x, y) + gauss_beam(x + 25, y) + gauss_beam(x, y - 25)
+end
+
 function scint(x, y)
-    size = 30.0
+    size = 15.0
     x = x - 50.0
     y = y - 50.0
     #    x = x % (40 * 2.5)
     #    y = y % (40 * 2.5)
     #if x <= size && y <= size && x >= 0.0 && y >= 0.0
-    if x^2 <= size^2 && y^2 <= size^2
+    #if x^2 <= size^2 && y^2 <= size^2
+    if x^2 + y^2 <= size^2
         return 1.0
     end
     return 0.0
@@ -60,20 +64,22 @@ end
 bins = 40
 stride = 2.5
 
+beam = triple_gauss
 beam_grid = pop_grid(beam, bins, bins, stride)
+beam_grid = beam_grid / maximum(beam_grid)
 scint_grid = shift(pop_grid(scint, bins, bins, stride), 19, 19)
 
 measure_grid = conv(beam_grid, scint_grid)
 
-#reconstructed = lucy(measure_grid, scint_grid, iterations=1000)
-reconstructed = deconvolution(measure_grid, scint_grid)[1]
-#reconstructed = reconstructed / maximum(reconstructed)
+reconstructed = deconvolution(measure_grid, scint_grid, regularizer=Tikhonov(), iterations=55)[1]
+reconstructed = reconstructed / maximum(reconstructed)
 
 delta = reconstructed - beam_grid
 
 h1 = heatmap(measure_grid, title="measured")
+#h2 = heatmap(beam_grid, title="beam")
 h2 = heatmap(scint_grid, title="scint")
-h3 = heatmap(reconstructed, title="beam")
+h3 = heatmap(reconstructed, title="cal beam")
 h4 = heatmap(delta, title="delta")
 plot(h1, h2, h3, h4, layout=(2, 2))
 
