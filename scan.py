@@ -1,6 +1,14 @@
 from zaber_motion import Units
 from zaber_motion.ascii import Connection
 
+max_speed = 10.
+
+def make_scan_path(xsize, ysize, line_count):
+    command_list = []
+    command_list.append((0, 0, max_speed))
+
+    ...
+
 with Connection.open_serial_port("COM3") as connection:
     connection.enable_alerts()
 

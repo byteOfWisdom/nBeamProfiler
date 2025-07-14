@@ -61,26 +61,28 @@ function shift(mat, rows, cols)
     return res
 end
 
-bins = 40
-stride = 2.5
+function main()
+    bins = 40
+    stride = 2.5
 
-beam = triple_gauss
-beam_grid = pop_grid(beam, bins, bins, stride)
-beam_grid = beam_grid / maximum(beam_grid)
-scint_grid = shift(pop_grid(scint, bins, bins, stride), 19, 19)
+    beam = triple_gauss
+    beam_grid = pop_grid(beam, bins, bins, stride)
+    beam_grid = beam_grid / maximum(beam_grid)
+    scint_grid = shift(pop_grid(scint, bins, bins, stride), 19, 19)
 
-measure_grid = conv(beam_grid, scint_grid)
+    measure_grid = conv(beam_grid, scint_grid)
 
-reconstructed = deconvolution(measure_grid, scint_grid, regularizer=Tikhonov(), iterations=55)[1]
-reconstructed = reconstructed / maximum(reconstructed)
+    reconstructed = deconvolution(measure_grid, scint_grid, regularizer=Tikhonov(), iterations=55)[1]
+    reconstructed = reconstructed / maximum(reconstructed)
 
-delta = reconstructed - beam_grid
+    delta = reconstructed - beam_grid
 
-h1 = heatmap(measure_grid, title="measured")
-#h2 = heatmap(beam_grid, title="beam")
-h2 = heatmap(scint_grid, title="scint")
-h3 = heatmap(reconstructed, title="cal beam")
-h4 = heatmap(delta, title="delta")
-plot(h1, h2, h3, h4, layout=(2, 2))
+    h1 = heatmap(measure_grid, title="measured")
+    #h2 = heatmap(beam_grid, title="beam")
+    h2 = heatmap(scint_grid, title="scint")
+    h3 = heatmap(reconstructed, title="cal beam")
+    h4 = heatmap(delta, title="delta")
+    plot(h1, h2, h3, h4, layout=(2, 2))
 
-gui()
+    gui()
+end
