@@ -2,7 +2,7 @@ using Base: absdiff
 using FFTW
 using CSV
 #using Deconvolution
-using DeconvOptim
+using DeconvOptim # doi:10.21105/jcon.00099
 using Plots
 using Images
 using LsqFit
