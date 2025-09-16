@@ -16,7 +16,13 @@ fluency = data[2]
 x_list = data[3]
 y_list = data[4]
 
-nrows = 40
+nrows = Int(ARGS[2])
+
+iterations = 25 # 25 is a good default
+if ARGS.length > 2
+	iterations = Int(ARGS[3])
+end
+
 xsize = 100.0
 ysize = 100.0
 ystep = ysize / nrows
@@ -105,7 +111,7 @@ num_grid = even_grid(fluency)
 scint = shift(pop_grid(scint_func, nrows, nrows, xstep, ystep), convert(Int, nrows / 2) - 1, convert(Int, nrows / 2) - 1)
 
 num_grid = num_grid / maximum(num_grid)
-beam = deconvolution(num_grid, scint, regularizer=Tikhonov(), iterations=25)[1]
+beam = deconvolution(num_grid, scint, regularizer=Tikhonov(), iterations=iterations)[1]
 beam = beam / maximum(beam)
 
 h1 = heatmap(num_grid, title="measured")
