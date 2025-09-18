@@ -16,12 +16,12 @@ fluency = data[2]
 x_list = data[3]
 y_list = data[4]
 
-nrows = Int(ARGS[2])
+nrows = parse(Int64, ARGS[2])
 
 iterations = 25 # 25 is a good default
-if ARGS.length > 2
-	iterations = Int(ARGS[3])
-end
+#if ARGS.length > 2
+#	iterations = parse(Int64, ARGS[3])
+#end
 
 xsize = 100.0
 ysize = 100.0
@@ -111,12 +111,12 @@ num_grid = even_grid(fluency)
 scint = shift(pop_grid(scint_func, nrows, nrows, xstep, ystep), convert(Int, nrows / 2) - 1, convert(Int, nrows / 2) - 1)
 
 num_grid = num_grid / maximum(num_grid)
-beam = deconvolution(num_grid, scint, regularizer=Tikhonov(), iterations=iterations)[1]
+beam = ifftshift(deconvolution(num_grid, ifftshift(scint), regularizer=Tikhonov(), iterations=iterations)[1])
 beam = beam / maximum(beam)
 
 h1 = heatmap(num_grid, title="measured")
 h2 = heatmap(scint, title="scintilator")
-h3 = heatmap(beam, title="cal beam")
+h3 = heatmap(beam, title="calculated beam")
 h4 = heatmap(conv(beam, scint), title="reconvoluted")
 plot(h1, h2, h3, h4, layout=(2, 2))
 
