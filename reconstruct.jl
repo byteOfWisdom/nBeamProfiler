@@ -1,7 +1,6 @@
 using Base: absdiff
 using FFTW
 using CSV
-#using Deconvolution
 using DeconvOptim # doi:10.21105/jcon.00099
 using Plots
 using Images
@@ -18,10 +17,8 @@ y_list = data[4]
 
 nrows = parse(Int64, ARGS[2])
 
-iterations = 25 # 25 is a good default
-#if ARGS.length > 2
-#	iterations = parse(Int64, ARGS[3])
-#end
+iterations = 1000
+iterations = parse(Int64, ARGS[3])
 
 xsize = 100.0
 ysize = 100.0
@@ -111,13 +108,19 @@ num_grid = even_grid(fluency)
 scint = shift(pop_grid(scint_func, nrows, nrows, xstep, ystep), convert(Int, nrows / 2) - 1, convert(Int, nrows / 2) - 1)
 
 num_grid = num_grid / maximum(num_grid)
-beam = ifftshift(deconvolution(num_grid, ifftshift(scint), regularizer=Tikhonov(), iterations=iterations)[1])
-beam = beam / maximum(beam)
+#beam = ifftshift(deconvolution(num_grid, ifftshift(scint), regularizer=Tikhonov(), iterations=iterations)[1])
+beam = deconvolution(num_grid, scint, regularizer=Tikhonov(), iterations=iterations)[1]
+beam = beam ./ maximum(beam)
+
+total_diff = sum((num_grid .- (conv(beam, scint) ./ maximum(conv(beam, scint)))) .^ 2)
+print("total_diff = ")
+println(total_diff)
 
 h1 = heatmap(num_grid, title="measured")
-h2 = heatmap(scint, title="scintilator")
+#h2 = heatmap(scint, title="scintilator")
+h2 = heatmap(num_grid .- (conv(beam, scint) ./ maximum(conv(beam, scint))), title="difference")
 h3 = heatmap(beam, title="calculated beam")
-h4 = heatmap(conv(beam, scint), title="reconvoluted")
+h4 = heatmap(conv(beam, scint)./ maximum(conv(beam, scint)), title="reconvoluted")
 plot(h1, h2, h3, h4, layout=(2, 2))
 
 
