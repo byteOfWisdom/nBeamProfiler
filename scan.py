@@ -5,6 +5,7 @@ from sys import argv
 
 max_speed = 10.
 scan_speed = 10.
+sync_pin = 26
 
 def make_scan_path(xsize, ysize, line_count):
     command_list = []
@@ -14,6 +15,7 @@ def make_scan_path(xsize, ysize, line_count):
     for i in range(line_count):
         command_list.append((xsize if fwd else 0, (ysize / line_count) * i, scan_speed)) # the actual scan line
         command_list.append(((xsize if fwd else 0, (ysize / line_count) * (i + 1), max_speed))) # the height diff
+        fwd = not fwd # switch direction for each row
 
     return command_list[:-1] # don't need the last vertical step
 
@@ -34,10 +36,10 @@ if __name__ == "__main__":
         device = device_list[0]
 
         xaxis = device.get_axis(1)
+        yaxis = device.get_axis(2)
         if not xaxis.is_homed():
             xaxis.home()
 
-        yaxis = device.get_axis(2)
         if not yaxis.is_homed():
             yaxis.home()
 

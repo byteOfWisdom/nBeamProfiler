@@ -1,12 +1,14 @@
 import RPi.GPIO as GPIO
 from time import sleep
+from sys import argv
 
 sync_pin = 26
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(sync_pin, GPIO.OUT)
+delay = int(argv[2]) * 1e-3
 
-while 1:
+for _ in range(int(argv[1])):
     GPIO.output(sync_pin, GPIO.HIGH)
-    sleep(0.1)
+    sleep(delay)
     GPIO.output(sync_pin, GPIO.LOW)
-    sleep(0.1)
+    sleep(delay)
