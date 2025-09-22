@@ -12,3 +12,5 @@ for _ in range(int(argv[1])):
     sleep(delay)
     GPIO.output(sync_pin, GPIO.LOW)
     sleep(delay)
+
+GPIO.cleanup()

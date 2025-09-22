@@ -4,7 +4,7 @@ import RPi.GPIO as GPIO
 from sys import argv
 
 max_speed = 10.
-scan_speed = 2.5
+scan_speed = 10.
 sync_pin = 26
 
 def make_scan_path(xsize, ysize, line_count):
@@ -21,12 +21,11 @@ def make_scan_path(xsize, ysize, line_count):
 
 
 if __name__ == "__main__":
-    GPIO.setmode(GPIO.BCM)
+    GPIO.setmode(GPIO.BOARD)
     GPIO.setup(sync_pin, GPIO.OUT)
     # requies argv: serialport, linecount, xsize (in cm), ysize (in cm)
 
     scan_cmds = make_scan_path(float(argv[3]) if len(argv) > 3 else 30., float(argv[4]) if len(argv) > 4 else 30., int(argv[2]) if len(argv) > 2 else 20)
-
 
     with Connection.open_serial_port(argv[1]) as connection:
         connection.enable_alerts()
@@ -34,28 +33,18 @@ if __name__ == "__main__":
         device_list = connection.detect_devices()
         print("Found {} devices".format(len(device_list)))
 
-        #device = device_list[0]
+        device = device_list[0]
 
-        xaxis = device_list[0].get_axis(1)
-        yaxis = device_list[1].get_axis(1)
-        #if not xaxis.is_homed():
-        xaxis.home()
+        xaxis = device.get_axis(1)
+        yaxis = device.get_axis(2)
+        if not xaxis.is_homed():
+            xaxis.home()
 
-        #if not yaxis.is_homed():
-        yaxis.home()
+        if not yaxis.is_homed():
+            yaxis.home()
 
-        max_speed = yaxis.settings.get("maxspeed", Units.VELOCITY_CENTIMETRES_PER_SECOND)
-        scan_speed = xaxis.settings.get("maxspeed", Units.VELOCITY_CENTIMETRES_PER_SECOND)
-
-        i = 0
         for x, y, s in scan_cmds:
             GPIO.output(sync_pin, GPIO.HIGH)
-            #xaxis.move_absolute(x * 10., Units.LENGTH_MILLIMETRES, velocity = scan_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
-            xaxis.move_absolute(x * 10., Units.LENGTH_MILLIMETRES)
+            xaxis.move_absolute(x * 10., Units.LENGTH_MILLIMETRES, s)
             GPIO.output(sync_pin, GPIO.LOW)
-            #yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES, velocity = max_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
-            yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES)
-            i += 1
-            print(f"finished move command {i} out of {len(scan_cmds)}")
-
-    GPIO.cleanup()
+            yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES, s)
