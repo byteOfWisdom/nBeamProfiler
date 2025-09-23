@@ -125,7 +125,7 @@ def analyze_run(data):
 
 
 def csv_print(fname, *cols):
-    with open(fname) as file:
+    with open(fname, 'w') as file:
         file.writelines([",".join([str(c[i]) for c in cols]) for i in range(len(cols[0]))])
 
 
@@ -181,7 +181,7 @@ def main():
         y_points = np.append(y_points, ypos)
 
     # write result
-    csv_print(argv[2], valid_times, valid_fluencies, x_points, y_points)
+    csv_print(argv[2], valid_times * 1e-12, valid_fluencies, x_points, y_points)
 
 if __name__ == "__main__":
     main()
