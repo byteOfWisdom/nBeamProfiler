@@ -22,7 +22,7 @@ class dataset:
 
 def load_dataset(filename):
     raw = np.transpose(np.loadtxt(argv[1], delimiter=','))
-    return dataset(*raw[:-1])
+    return dataset(short=raw[1], long=raw[0], time=raw[2], channel=raw[3])
 
 
 show_n_gamma = True
@@ -124,28 +124,64 @@ def analyze_run(data):
     return cutoff_value
 
 
-def is_neutron(data):
-    return True
+def csv_print(fname, *cols):
+    with open(fname) as file:
+        file.writelines([",".join([str(c[i]) for c in cols]) for i in range(len(cols[0]))])
+
+
+def pairs(iterable):
+    iterable = iter(iterable)
+    try:
+        a = next(iterable)
+        b = next(iterable)
+        yield a, b
+    except StopIteration:
+        return None
 
 
 def main():
     data = load_dataset(argv[1])
+
+    timing_offset = 0 # todo: make this the actual number for the offset from pulse to motion
+
     # run n-gamma-discrimination
     sync_channel = 3
-    cutoff = analyze_run(data.subset(data.channel != sync_channel))
+    data_channel = 1
+    cutoff = analyze_run(data.subset(data.channel == data_channel))
     timing_pulses = data.subset(data.channel == sync_channel).time
     print(f"number of timing pulses is: {len(timing_pulses)}")
-    neutron_hits = data.subset(data.y() > cutoff)
+    neutron_hits = data.subset(data.short < data.long)
+    neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)
 
     # convert hits to fluency
     instant_fluency = neutron_hits.time[1:] - neutron_hits.time[:-1]
     measurement_times = 0.5 * (neutron_hits.time[1:] - neutron_hits.time[:-1])
 
     # assosicate position values to data
-    line_times = timing_pulses
+    valid_fluencies = np.array([])
+    valid_times = np.array([])
+    x_points = np.array([])
+    y_points = np.array([])
+    line_count = len(timing_pulses) / 2
+    current_line = 0
+    fwd = True
+    for start, end in pairs(timing_pulses):
+        start -= timing_offset
+        end -= timing_offset
+        valid_fluencies = np.append(valid_fluencies, instant_fluency[(measurement_times >= start) & (measurement_times <= end)])
+        valid_times.append(valid_fluencies, measurement_times[(measurement_times >= start) & (measurement_times <= end)])
+        delta_t = end - start
+        xpos = (measurement_times[(measurement_times >= start) & (measurement_times <= end)] - start) / delta_t
+        if not fwd:
+            xpos = 1.0 - xpos
+        ypos = current_line / line_count
+        current_line += 1
+        fwd = not fwd
+        x_points = np.append(x_points, xpos)
+        y_points = np.append(y_points, ypos)
 
     # write result
-
+    csv_print(argv[2], valid_times, valid_fluencies, x_points, y_points)
 
 if __name__ == "__main__":
     main()

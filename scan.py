@@ -17,7 +17,8 @@ def make_scan_path(xsize, ysize, line_count):
         command_list.append(((xsize if fwd else 0, (ysize / line_count) * (i + 1), max_speed))) # the height diff
         fwd = not fwd # switch direction for each row
 
-    return command_list[:-1] # don't need the last vertical step
+    command_list[-1] = command_list[-2] # make the last command not move but just stay in place and send a pulse
+    return command_list# [:-1] # don't need the last vertical step
 
 
 if __name__ == "__main__":
