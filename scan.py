@@ -9,7 +9,7 @@ sync_pin = 26
 
 def make_scan_path(xsize, ysize, line_count):
     command_list = []
-    command_list.append((0, 0, max_speed))
+    #command_list.append((0, 0, max_speed))
 
     fwd = True
     for i in range(line_count):
@@ -56,7 +56,7 @@ if __name__ == "__main__":
             GPIO.output(sync_pin, GPIO.LOW)
             #yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES, velocity = max_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
             yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES)
-            i += 1
             print(f"finished move command {i} out of {len(scan_cmds)}")
+            i += 1
 
     GPIO.cleanup()
