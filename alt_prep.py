@@ -161,38 +161,31 @@ def main():
 
     # convert hits to fluency
     time_const = 6.25e-8 # assumes 12.5ns
-    instant_fluency = 1.0 / ((neutron_hits.time[1:] - neutron_hits.time[:-1]) * time_const)
-    measurement_times = 0.5 * (neutron_hits.time[1:] + neutron_hits.time[:-1])
+    times = neutron_hits.time
+
 
     # assosicate position values to data
-    valid_fluencies = np.array([])
-    valid_times = np.array([])
-    x_points = np.array([])
-    y_points = np.array([])
-    line_count = len(timing_pulses) / 2
+    fluencies = []
+    x_points = []
+    y_points = []
+    line_count = len(timing_pulses) // 2
     current_line = 0
     fwd = True
     for start, end in pairs(timing_pulses):
-        print(f"start is: {start} and end is {end}")
         start -= timing_offset
         end -= timing_offset
-        mask = (measurement_times >= start) & (measurement_times <= end)
-        print(len(mask[mask]))
-        valid_fluencies = np.append(valid_fluencies, instant_fluency[mask])
-        valid_times = np.append(valid_times, measurement_times[mask])
         delta_t = end - start
-        xpos = (measurement_times[mask] - start) / delta_t
-        if not fwd:
-            xpos = 1.0 - xpos
-        ypos = np.array([current_line / line_count] * len(xpos))
+        timeborders = np.linspace(start, end, line_count + 1)
+        for i in range(0, line_count):
+            mask = (times >= timeborders[i]) & (times <= timeborders[i + 1])
+            fluencies.append(len(times[mask]) / delta_t)
+            x_points.append(i if fwd else line_count - i)
+            y_points.append(current_line)
         current_line += 1
-        fwd = not fwd
-        x_points = np.append(x_points, xpos)
-        y_points = np.append(y_points, ypos)
 
     # write result
-    not_outlier = valid_fluencies <= sorted(valid_fluencies)[int(0.95 * len(valid_fluencies))]
-    csv_print(argv[2], valid_times[not_outlier] * 1e-12, valid_fluencies[not_outlier], x_points[not_outlier] * 100., y_points[not_outlier] * 100.)
+    csv_print(argv[2], x_points, y_points, fluencies)
+
 
 if __name__ == "__main__":
     main()

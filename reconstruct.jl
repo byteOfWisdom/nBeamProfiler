@@ -8,7 +8,7 @@ using LsqFit
 
 
 cols(a) = [view(a, :, i) for i in 1:size(a, 2)]
-data = cols(CSV.read(ARGS[1], CSV.Tables.matrix; delim=" "))
+data = cols(CSV.read(ARGS[1], CSV.Tables.matrix; delim=", "))
 
 times = data[1]
 fluency = data[2]
@@ -107,10 +107,10 @@ num_grid = even_grid(fluency)
 
 scint = shift(pop_grid(scint_func, nrows, nrows, xstep, ystep), convert(Int, nrows / 2) - 1, convert(Int, nrows / 2) - 1)
 
-num_grid = num_grid / maximum(num_grid)
+#num_grid = num_grid / maximum(num_grid)
 #beam = ifftshift(deconvolution(num_grid, ifftshift(scint), regularizer=Tikhonov(), iterations=iterations)[1])
 beam = deconvolution(num_grid, scint, regularizer=Tikhonov(), iterations=iterations)[1]
-beam = beam ./ maximum(beam)
+#beam = beam ./ maximum(beam)
 
 total_diff = sum((num_grid .- (conv(beam, scint) ./ maximum(conv(beam, scint)))) .^ 2)
 print("total_diff = ")
