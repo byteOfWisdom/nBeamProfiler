@@ -160,7 +160,7 @@ def main():
     neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)
 
     # convert hits to fluency
-    time_const = 6.25e-8 # assumes 12.5ns
+    # time_const = 6.25e-8 # assumes 12.5ns
     times = neutron_hits.time
 
 
