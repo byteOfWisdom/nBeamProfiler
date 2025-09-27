@@ -145,9 +145,13 @@ def main():
 
     for i in range(1, len(data.time)):
         if data.time[i] < data.time[i - 1]:
-            data.time[i:] += 4294967296
+            data.time[i:] += 2 ** 30
 
-    timing_offset = 0 # todo: make this the actual number for the offset from pulse to motion
+    # 600us ?
+    # 
+    time_const = 6.25e-8 # assumes 12.5ns
+    timing_offset_start = 600e-6/ time_const # todo: make this the actual number for the offset from pulse to motion
+    timing_offset_end = 0.0 / time_const
 
     # run n-gamma-discrimination
     sync_channel = 3
@@ -172,16 +176,17 @@ def main():
     current_line = 0
     fwd = True
     for start, end in pairs(timing_pulses):
-        start -= timing_offset
-        end -= timing_offset
+        start -= timing_offset_start
+        end -= timing_offset_end
         delta_t = end - start
         timeborders = np.linspace(start, end, line_count + 1)
         for i in range(0, line_count):
             mask = (times >= timeborders[i]) & (times <= timeborders[i + 1])
             fluencies.append(len(times[mask]) / delta_t)
-            x_points.append(i if fwd else line_count - i)
+            x_points.append(i if fwd else line_count - i - 1)
             y_points.append(current_line)
         current_line += 1
+        fwd = not fwd
 
     # write result
     csv_print(argv[2], x_points, y_points, fluencies)
