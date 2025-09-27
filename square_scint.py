@@ -1,5 +1,5 @@
 from sys import argv
-
+import math
 
 def csv_print(*cols):
     for i in range(len(cols[0])):
@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     high_bins = size * bin_count 
 
-    low_cut = int(high_bins // 2)
+    low_cut = int(math.ceil(high_bins / 2))
     high_cut = bin_count - low_cut
 
     xs = []
