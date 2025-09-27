@@ -9,15 +9,15 @@ def csv_print(*cols):
 
 if __name__ == "__main__":
     _ = print("args: [bin count] [size] [scan area size]") if len(argv) < 3 else None
-    size = float(argv[3]) / float(argv[2])
+    size = float(argv[2]) / float(argv[3])
     bin_count = int(argv[1])
 
     grid = [[0.0 for _ in range(bin_count)] for _ in range(bin_count)]
 
-    high_bins = size * 100. / bin_count 
+    high_bins = size * bin_count 
 
     low_cut = int(high_bins // 2)
-    high_cut =bin_count - low_cut
+    high_cut = bin_count - low_cut
 
     xs = []
     ys = []

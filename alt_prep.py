@@ -188,6 +188,8 @@ def main():
         current_line += 1
         fwd = not fwd
 
+    fluencies = list(np.array(fluencies) / max(fluencies))
+
     # write result
     csv_print(argv[2], x_points, y_points, fluencies)
 
