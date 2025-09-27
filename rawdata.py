@@ -16,5 +16,5 @@ for i in range(len(x)):
     grid[int(x[i])][int(y[i])] = flow[i]
 
 #plt.hist(x[y == y[int(len(y) / 2)]], bins=20)
-plt.imshow(grid)
+plt.imshow(np.transpose(grid))
 plt.show()
