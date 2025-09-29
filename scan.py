@@ -62,5 +62,7 @@ if __name__ == "__main__":
             yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES)
             print(f"finished move command {i} out of {len(scan_cmds)}")
             i += 1
+        xaxis.move_absolute(0, Units.LENGTH_MILLIMETRES)        
+        yaxis.move_absolute(0, Units.LENGTH_MILLIMETRES)        
 
     GPIO.cleanup()
