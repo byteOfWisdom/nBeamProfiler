@@ -28,6 +28,7 @@ if __name__ == "__main__":
 
     scan_cmds = make_scan_path(float(argv[3]) if len(argv) > 3 else 30., float(argv[4]) if len(argv) > 4 else 30., int(argv[2]) if len(argv) > 2 else 20)
 
+    move_speed = float(argv[5]) if len(argv) > 5 else 2.5
 
     with Connection.open_serial_port(argv[1]) as connection:
         connection.enable_alerts()
@@ -39,6 +40,9 @@ if __name__ == "__main__":
 
         xaxis = device_list[0].get_axis(1)
         yaxis = device_list[1].get_axis(1)
+
+        xaxis.settings.set("maxspeed", move_speed, Units.VELOCITY_CENTIMETRES_PER_SECOND)
+        yaxis.settings.set("maxspeed", move_speed, Units.VELOCITY_CENTIMETRES_PER_SECOND)
         #if not xaxis.is_homed():
         xaxis.home()
 
@@ -51,10 +55,10 @@ if __name__ == "__main__":
         i = 0
         for x, y, s in scan_cmds:
             GPIO.output(sync_pin, GPIO.HIGH)
-            #xaxis.move_absolute(x * 10., Units.LENGTH_MILLIMETRES, velocity = scan_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
+            # xaxis.move_absolute(x * 10., Units.LENGTH_MILLIMETRES, velocity = scan_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
             xaxis.move_absolute(x * 10., Units.LENGTH_MILLIMETRES)
             GPIO.output(sync_pin, GPIO.LOW)
-            #yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES, velocity = max_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
+            # yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES, velocity = max_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
             yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES)
             print(f"finished move command {i} out of {len(scan_cmds)}")
             i += 1
