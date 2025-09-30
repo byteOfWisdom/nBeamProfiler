@@ -1,0 +1,4 @@
+1) scan.py area limitations
+2) deconv.jl results to file
+3) automatic scint generation
+
