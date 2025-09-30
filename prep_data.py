@@ -155,7 +155,7 @@ def main():
 
     # run n-gamma-discrimination
     sync_channel = 3
-    data_channel = 1
+    data_channel = 2
     cutoff = 0.3 # analyze_run(data.subset(data.channel == data_channel))
     timing_pulses = data.subset(data.channel == sync_channel).time
     data = data.subset(data.channel == data_channel)
