@@ -8,8 +8,10 @@ using Images
 
 function load_grid(fname)
     println("loading: ", fname)
+    raw_data = read(fname)
     cols(a) = [view(a, :, i) for i in 1:size(a, 2)]
-    data = cols(CSV.read(fname, CSV.Tables.matrix; delim=", "))
+    buffer = IOBuffer(raw_data)
+    data = cols(CSV.read(buffer, CSV.Tables.matrix; delim=", "))
 
     xbins = data[1]
     ybins = data[2]
