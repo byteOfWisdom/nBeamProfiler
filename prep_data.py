@@ -5,6 +5,55 @@ from scipy import optimize as opt
 from scipy import signal as sig
 from sys import argv
 
+def closest_time(times: np.ndarray, point: float) -> float:
+    diff = np.abs(times - point)
+    return times[diff == min(diff)][0]
+
+
+def fix_timing_pulses(timing_data):
+    time_deltas = timing_data[1:] - timing_data[:-1]
+    # time_deltas = np.sort(time_deltas)[:- int(len(time_deltas) * 0.3)] # filter out too long deltas due to missing events
+    long_deltas = time_deltas[time_deltas > np.average(time_deltas)]
+    long_deltas = np.sort(long_deltas)[:- int(len(long_deltas) * 0.3)] # filter out too long deltas due to missing events
+    short_deltas = time_deltas[time_deltas < np.average(time_deltas)]
+   
+    correct_short = np.average(short_deltas)
+    correct_long = np.average(long_deltas)
+
+    # next_is_short = False# the last movement will always be a short one
+
+    # needs_long = np.append([False], time_deltas > 1.75 * correct_long)
+    # for i in reversed(range(len(needs_long))):
+    #     if needs_long[i]:
+    #         timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_long)
+
+    # needs_short = np.append([False], time_deltas > 1.75 * correct_short)
+    # for i in reversed(range(len(needs_short))):
+    #     if needs_short[i]:
+    #         timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_short)
+
+    i = 0
+    next_long = True
+    while i < len(timing_data) - 1:
+        delta = np.abs(timing_data[i] - timing_data[i + 1])
+        if next_long and delta > 1.75 * correct_long:
+            timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_long)
+            print("inserted missing timing pulse")
+
+        if not next_long and delta > 1.75 * correct_short:
+            timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_short)
+            print("inserted missing timing pulse")
+
+        next_long = not next_long
+        i += 1
+
+
+
+    # plt.plot(timing_data)
+    # plt.show()
+
+    return timing_data
+
 
 @dataclass
 class dataset:
@@ -158,6 +207,7 @@ def main():
     data_channel = 2
     cutoff = 0.3 # analyze_run(data.subset(data.channel == data_channel))
     timing_pulses = data.subset(data.channel == sync_channel).time
+    timing_pulses = fix_timing_pulses(timing_pulses)
     data = data.subset(data.channel == data_channel)
     print(f"number of timing pulses is: {len(timing_pulses)}")
     neutron_hits = data.subset(data.short < data.long)
