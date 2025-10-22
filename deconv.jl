@@ -6,9 +6,8 @@ using Plots
 using Images
 
 
-function load_grid(fname)
-    println("loading: ", fname)
-    raw_data = read(fname)
+function load_grid(raw_data)
+    # raw_data = read(fname)
     cols(a) = [view(a, :, i) for i in 1:size(a, 2)]
     buffer = IOBuffer(raw_data)
     data = cols(CSV.read(buffer, CSV.Tables.matrix; delim=", "))
@@ -32,12 +31,23 @@ function load_grid(fname)
 end
 
 
+function run_deconv(measured, scint, iterations, print_params = false)
+    beam = deconvolution(measured, scint, regularizer=Tikhonov(), iterations=iterations)[1]
+    if print_params
+        total_diff = sum((raw_beam .- (conv(beam, scint) ./ maximum(conv(beam, scint)))) .^ 2)
+        println("total_diff = ", total_diff)
+    end
+
+    return beam
+end
+
+
 function main()
     iterations = 1000
     iterations = parse(Int64, ARGS[3])
 
-    raw_beam = load_grid(ARGS[1])
-    scint = load_grid(ARGS[2])
+    raw_beam = load_grid(read(ARGS[1]))
+    scint = load_grid(read(ARGS[2]))
 
     beam = deconvolution(raw_beam, scint, regularizer=Tikhonov(), iterations=iterations)[1]
 
