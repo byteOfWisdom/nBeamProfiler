@@ -1,7 +1,9 @@
 using CSV
 
+print_status = true
+
 struct event
-    time::Float64
+    time::Int64
     channel::Int8
     y::Float64
 end
@@ -13,12 +15,12 @@ end
 
 
 function line_to_event(line)
-    nums = map(x -> parse(Float64, x), split(line, ","))
+    nums = split(line, ",")
     # long short time channel
-    long = nums[1]
-    short = nums[2]
-    time = nums[3]
-    channel = Int8(nums[4])
+    long = parse(Float64, nums[1])
+    short = parse(Float64, nums[2])
+    time = parse(Int64, nums[3])
+    channel = parse(Int8, nums[4])
     y = (long - short) / long
     return event(time, channel, y)
 end
@@ -37,7 +39,7 @@ function de_mesyfy(fname)
     for line in lines[2:end]
         chunks = split(line, ",")
         for i in 0:15
-            time = parse(Float64, chunks[1]) * conv_const
+            time = Int64(round(parse(Float64, chunks[1]) * conv_const))
             long = chunks[i + 2]
             short = chunks[i + 18]
             if long != ""
@@ -57,9 +59,12 @@ end
 
 
 function load_file(fname)
+    print_status ? println("-------- loading file --------") : 0
     if length(split(readlines(fname)[1], ",")) > 6
+        print_status ? println("format is mesytec software") : 0
         return load_mesyset(fname)
     end
+    print_status ? println("format is daq program") : 0
     return load_dataset(fname)
 end
 
