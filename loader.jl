@@ -34,7 +34,7 @@ end
 
 function de_mesyfy(fname)
     res = []
-    conv_const = 1 / 6.25e-8
+    conv_const = 2^30 * 6.25e-8
     lines = readlines(fname)
     for line in lines[2:end]
         chunks = split(line, ",")
