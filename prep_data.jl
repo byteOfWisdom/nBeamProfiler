@@ -1,5 +1,7 @@
 include("loader.jl")
 
+print_status = true
+
 function get_timing_pulses(data, channel)
     is_chan(x, c) = x.channel == c
     timing_events = filter(x -> is_chan(x, channel), data)
@@ -54,7 +56,7 @@ function remove_timing_overflows(data)
     t_corrections = zeros(length(data))
     for i in 1:length(data) - 1
         if data[i].time > data[i + 1].time
-            println("found timestmp overflow")
+            println("found timestamp overflow")
             t_corrections[i:end] .+= t_of_const
         end
     end
@@ -71,18 +73,21 @@ function filter_neutron_hits(events)
 end
 
 
-function bin_hits(hits, timing_pulses, line_count)
+function bin_hits(hits, timing_pulses, line_count, delay_correction = 0)
     times = map(x -> x.time, hits)
     grid = zeros(line_count, line_count)
     i = 1
     fwd = true
     for (line_start, line_end) in pairs(timing_pulses)
+        print_status ? println("line ", i, "/", line_count) : 0
+        line_start -= delay_correction
+        line_end -= delay_correction
         time_edges = LinRange(line_start, line_end, line_count)
         time_edges = fwd ? time_edges : reverse(time_edges)
         for j in 1:(line_count - 1)
-            a = time_edges[j]
-            b = time_edges[j + 1]
-            grid[i, j] = sum(a .< times .< b)
+            a = time_edges[fwd ? j : j + 1]
+            b = time_edges[fwd ? j + 1 : j]
+            grid[i, j] = sum(a .<= times .<= b)
         end
         i += 1
         fwd = !fwd
