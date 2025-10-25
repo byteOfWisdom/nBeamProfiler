@@ -1,3 +1,5 @@
+using DeconvOptim
+
 include("loader.jl")
 include("prep_data.jl")
 
