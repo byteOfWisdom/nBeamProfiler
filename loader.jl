@@ -32,11 +32,34 @@ function load_dataset(fname)
 end
 
 
+struct ParseRes
+    content::Array{Array{Float64}}
+end
+
+using Distributed
+
 function de_mesyfy(fname)
     res = []
-    conv_const = 2^30 * 6.25e-8
-    lines = readlines(fname)
-    for line in lines[2:end]
+    conv_const = 1 / 6.25e-8 
+    println("beginning load file...")
+    # file = open(fname)
+    println("beginning read")
+    lines = readlines(fname)[2:end] # eachline(file)
+    # iterate(lines) # discardes first line
+    # for line in lines
+    #     chunks = split(line, ",")
+    #     for i in 0:15
+    #         time = Int64(round(parse(Float64, chunks[1]) * conv_const))
+    #         long = chunks[i + 2]
+    #         short = chunks[i + 18]
+    #         if long != ""
+    #             res = push!(res, join([long, short, time, i], ", "))
+    #         end                
+    #     end
+    # end
+    
+    function parse_mesy_line(line)
+        res = []
         chunks = split(line, ",")
         for i in 0:15
             time = Int64(round(parse(Float64, chunks[1]) * conv_const))
@@ -46,7 +69,17 @@ function de_mesyfy(fname)
                 res = push!(res, join([long, short, time, i], ", "))
             end                
         end
+        return ParseRes(res)
     end
+
+    res = fill(ParseRes, length(lines))
+    println("beginning parse")
+
+    @distributed for j in eachindex(lines)
+        res[j] = parse_mesy_line(lines[j])
+    end
+
+    res = Iterators.flatten(res)
     return res
 end
 
@@ -66,6 +99,21 @@ function load_file(fname)
     end
     print_status ? println("format is daq program") : 0
     return load_dataset(fname)
+end
+
+
+struct EventList
+    filled::Int64
+    len::Int64
+    events::Ptr{event}
+end
+
+
+function c_load_file(fname; is_mesy=false)
+    line_count = countlines(fname)
+    skip = is_mesy ? 1 : 0
+    res = @ccall "loader.so".load_file(fname::Cstring, line_count::Int64, is_mesy::Bool)::EventList
+    return unsafe_wrap(Array, res.events, res.filled; own=true)
 end
 
 
