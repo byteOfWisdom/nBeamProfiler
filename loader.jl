@@ -111,11 +111,24 @@ end
 
 function c_load_file(fname; is_mesy=false)
     line_count = countlines(fname)
-    skip = is_mesy ? 1 : 0
-    res = @ccall "loader.so".load_file(fname::Cstring, line_count::Int64, is_mesy::Bool)::EventList
-    return unsafe_wrap(Array, res.events, res.filled; own=true)
+    len = Ref{Int64}(0)
+    temp = @ccall "loader.so".load_file(fname::Cstring, line_count::Int64, len::Ptr{Int64}, is_mesy::Bool)::Ptr{event}
+    println("hello from the julia world")
+    println(len)
+    return unsafe_wrap(Array{event}, temp, len - 1; own=true)
+    # res = unsafe_load(temp::Ptr{EventList})
+    # println("length should be: ", res.filled)
+    # return unsafe_wrap(Array, res.events, res.filled; own=true)
 end
 
+
+function test()
+    fname = "test.c"
+    l = countlines(fname)
+    res = @ccall "loader.so".test(fname::Cstring, l::Int64)::Ptr{event}
+    arr = unsafe_wrap(Array, res, l)
+    println(arr)
+end
 
 function conv_to_grid(buffer, nrows, ncols)
     return 0.
