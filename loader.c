@@ -59,10 +59,10 @@ Event* load_file(char* fname, int64_t load, int64_t* len, bool mesy_format) {
   }
   fclose(fptr);
   // printf("returning now!\n");
-  printf("len now is: %lli\n", all_events.filled);
+  // printf("len now is: %lli\n", all_events.filled);
   *len = all_events.filled;
   // *data_out = all_events->events;
-  printf("wrote len to output\n");
+  // printf("wrote len to output\n");
   return all_events.events;
   // return all_events;
 }
@@ -210,7 +210,7 @@ EventList parse_mesy_file(FILE* file, uint64_t lines) {
 
   for (uint64_t i = 0; i < lines; ++i){
     item_buffer* item = find_writable(&data_q);
-    printf("reader assgined index %llu\n", i);
+    // printf("reader assgined index %llu\n", i);
     fgets(item->data, buffsize, file);
     item->index = i;
     pthread_mutex_unlock(&item->reader);
