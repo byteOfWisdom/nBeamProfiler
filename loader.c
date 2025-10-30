@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <sys/signal.h>
-
+#include <math.h>
 
 typedef struct {
   uint64_t time;
@@ -21,7 +21,7 @@ typedef struct {
 } EventList;
 
 
-Event* load_file(char*, int64_t, int64_t*, bool);
+EventList load_file(char*, int64_t, bool);
 void extend_event_list(EventList*, uint64_t);
 EventList make_event_list(int64_t);
 EventList parse_mesy_file(FILE*, uint64_t);
@@ -50,7 +50,7 @@ Event* test(char* s, int64_t l) {
 }
 
 
-Event* load_file(char* fname, int64_t load, int64_t* len, bool mesy_format) {
+EventList load_file(char* fname, int64_t load, bool mesy_format) {
   EventList all_events;
   FILE* fptr = fopen(fname, "r");
 
@@ -60,11 +60,10 @@ Event* load_file(char* fname, int64_t load, int64_t* len, bool mesy_format) {
   fclose(fptr);
   // printf("returning now!\n");
   // printf("len now is: %lli\n", all_events.filled);
-  *len = all_events.filled;
   // *data_out = all_events->events;
   // printf("wrote len to output\n");
-  return all_events.events;
-  // return all_events;
+  // return all_events.events;
+  return all_events;
 }
 
 
@@ -77,9 +76,32 @@ typedef struct {
 #define buffsize 1024
 
 MesyLine parse_mesy_line(char* line) {
-  MesyLine res = {0, {1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}, 1};
-  // printf("parsed line \n");
-  (void) line;
+  const double time_const = 1 / 6.25e-8;
+  double parse[33];
+
+  for (int i = 0; i < 33; ++i){
+    char* chunk = strsep(&line, ",");
+    int exists = sscanf(chunk, "%lf", parse + i);
+    if (!exists) {
+      parse[i] = 0.;
+    }
+  }
+
+  
+  MesyLine res = {0, {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}, 0};
+
+  res.timestamp = (uint64_t) round(parse[0] * time_const);
+
+  for (uint8_t i = 0; i < 16; ++i) {
+    if ((parse[i + 1] != 0.) & (parse[i + 17] != 0.)) {
+      double long_i = parse[i + 1];
+      double short_i = parse[i + 17];
+      
+      res.y[i] = (long_i - short_i) / long_i;
+      res.filled ++;
+    }
+  }
+  
   return res;
 }
 
@@ -170,6 +192,7 @@ void* mesy_worker(void* arg) {
 
 
 EventList unpack_events(MesyLine* data_buffer, uint64_t buff_len) {
+  printf("enerting unpack!");
   uint64_t total_count = 0;
   for (uint64_t i = 0; i < buff_len; ++i) {
     total_count += data_buffer[i].filled;
@@ -177,6 +200,8 @@ EventList unpack_events(MesyLine* data_buffer, uint64_t buff_len) {
 
   EventList event_list = make_event_list(total_count);
   event_list.filled = total_count;
+
+  printf("there are %llu total events\n", total_count);
 
   uint64_t n = 0;
   uint64_t i = 0;
@@ -190,7 +215,8 @@ EventList unpack_events(MesyLine* data_buffer, uint64_t buff_len) {
     }
     i += 1;
   }
-  event_list.filled = total_count;
+
+  printf("finished unpacking!\n");  
   return event_list;
 }
 
@@ -208,6 +234,10 @@ EventList parse_mesy_file(FILE* file, uint64_t lines) {
     pthread_create(&worker_handles[i], NULL, mesy_worker, (void*) &args);
   }
 
+  char header[buffsize];
+  fgets(header, buffsize, file); 
+  lines --;
+  (void) header;
   for (uint64_t i = 0; i < lines; ++i){
     item_buffer* item = find_writable(&data_q);
     // printf("reader assgined index %llu\n", i);
@@ -227,11 +257,13 @@ EventList parse_mesy_file(FILE* file, uint64_t lines) {
   // EventList events;
   // events.events = (Event*) calloc(lines, sizeof(Event));
 
-
+  printf("unpacking finished!\n");
   worker_run = false;
   for (unsigned int i = 0; i < thread_count; ++i) {
+    printf("setting quit env for thread %i\n", i);
     item_buffer* item = &data_q.items[i];
     item->index = 0;
+    strcpy(item->data, "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n\0");
     pthread_mutex_unlock(&item->reader);
   }
 

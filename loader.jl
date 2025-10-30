@@ -111,10 +111,8 @@ end
 
 function c_load_file(fname; is_mesy=false)
     line_count = countlines(fname)
-    len = Ref{Int64}(0)
-    temp = @ccall "loader.so".load_file(fname::Cstring, line_count::Int64, len::Ptr{Int64}, is_mesy::Bool)::Ptr{event}
-    num_elem = len[]
-    return unsafe_wrap(Array{event}, temp, num_elem; own=true)
+    temp = @ccall "loader.so".load_file(fname::Cstring, line_count::Int64, is_mesy::Bool)::EventList
+    return unsafe_wrap(Array{event}, temp.events, temp.filled; own=true)
 end
 
 
