@@ -45,21 +45,8 @@ function de_mesyfy(fname)
     # file = open(fname)
     println("beginning read")
     lines = readlines(fname)[2:end] # eachline(file)
-    # iterate(lines) # discardes first line
-    # for line in lines
-    #     chunks = split(line, ",")
-    #     for i in 0:15
-    #         time = Int64(round(parse(Float64, chunks[1]) * conv_const))
-    #         long = chunks[i + 2]
-    #         short = chunks[i + 18]
-    #         if long != ""
-    #             res = push!(res, join([long, short, time, i], ", "))
-    #         end                
-    #     end
-    # end
-    
-    function parse_mesy_line(line)
-        res = []
+    iterate(lines) # discardes first line
+    for line in lines
         chunks = split(line, ",")
         for i in 0:15
             time = Int64(round(parse(Float64, chunks[1]) * conv_const))
@@ -69,18 +56,31 @@ function de_mesyfy(fname)
                 res = push!(res, join([long, short, time, i], ", "))
             end                
         end
-        return ParseRes(res)
     end
-
-    res = fill(ParseRes, length(lines))
-    println("beginning parse")
-
-    @distributed for j in eachindex(lines)
-        res[j] = parse_mesy_line(lines[j])
-    end
-
-    res = Iterators.flatten(res)
     return res
+    # function parse_mesy_line(line)
+    #     res = []
+    #     chunks = split(line, ",")
+    #     for i in 0:15
+    #         time = Int64(round(parse(Float64, chunks[1]) * conv_const))
+    #         long = chunks[i + 2]
+    #         short = chunks[i + 18]
+    #         if long != ""
+    #             res = push!(res, join([long, short, time, i], ", "))
+    #         end                
+    #     end
+    #     return ParseRes(res)
+    # end
+
+    # res = fill(ParseRes, length(lines))
+    # println("beginning parse")
+
+    # @distributed for j in eachindex(lines)
+    #     res[j] = parse_mesy_line(lines[j])
+    # end
+
+    # res = Iterators.flatten(res)
+    # return res
 end
 
 
