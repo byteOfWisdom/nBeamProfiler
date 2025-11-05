@@ -167,7 +167,7 @@ function preprocess_measurements(data, timing_channel)
 
     println("binning hits...")
     line_count = Int64(length(timing_pulses) / 2)
-    return bin_hits(neutron_data, timing_pulses, line_count, 500)
+    return bin_hits(neutron_data, timing_pulses, line_count, -250), line_count
 end
 
 
