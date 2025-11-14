@@ -1,0 +1,272 @@
+from dataclasses import dataclass
+import numpy as np
+from matplotlib import pyplot as plt
+import fileinput
+from scipy import optimize as opt
+from scipy import signal as sig
+
+
+def closest_time(times: np.ndarray, point: float) -> float:
+    diff = np.abs(times - point)
+    return times[diff == min(diff)][0]
+
+
+def fix_timing_pulses(timing_data):
+    time_deltas = timing_data[1:] - timing_data[:-1]
+    # time_deltas = np.sort(time_deltas)[:- int(len(time_deltas) * 0.3)] # filter out too long deltas due to missing events
+    long_deltas = time_deltas[time_deltas > np.average(time_deltas)]
+    long_deltas = np.sort(long_deltas)[:- int(len(long_deltas) * 0.3)] # filter out too long deltas due to missing events
+    short_deltas = time_deltas[time_deltas < np.average(time_deltas)]
+
+    correct_short = np.average(short_deltas)
+    correct_long = np.average(long_deltas)
+
+    # next_is_short = False# the last movement will always be a short one
+
+    # needs_long = np.append([False], time_deltas > 1.75 * correct_long)
+    # for i in reversed(range(len(needs_long))):
+    #     if needs_long[i]:
+    #         timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_long)
+
+    # needs_short = np.append([False], time_deltas > 1.75 * correct_short)
+    # for i in reversed(range(len(needs_short))):
+    #     if needs_short[i]:
+    #         timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_short)
+
+    i = 0
+    next_long = True
+    while i < len(timing_data) - 1:
+        delta = np.abs(timing_data[i] - timing_data[i + 1])
+        if next_long and delta > 1.75 * correct_long:
+            timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_long)
+            print("inserted missing timing pulse")
+
+        if not next_long and delta > 1.75 * correct_short:
+            timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_short)
+            print("inserted missing timing pulse")
+
+        next_long = not next_long
+        i += 1
+
+    # plt.plot(timing_data)
+    # plt.show()
+
+    return timing_data
+
+
+@dataclass
+class dataset:
+    short: np.array
+    long: np.array
+    time: np.array
+    channel: np.array
+
+    def subset(self, condition: np.array):
+        return dataset(self.short[condition], self.long[condition], self.time[condition], self.channel[condition])
+
+    def y(self):
+        return (self.long - self.short) / self.long
+
+
+def load_dataset(filename):
+    raw = np.transpose(np.loadtxt(argv[1], delimiter=','))
+    return dataset(short=raw[1], long=raw[0], time=raw[2], channel=raw[3])
+
+
+show_n_gamma = True
+
+
+def convert_mesy_file(in_file):
+    in_handle = fileinput.input(in_file)
+
+    longs, shorts, times, channels = [], [], [], []
+
+    _ = next(in_handle)  # discard header line
+
+    timeconst = 1 / 6.25e-8
+
+    for line in in_handle:
+        cols = line.split(",")
+        time = int(float(cols[0]) * timeconst)
+        for channel in range(16):
+            long = cols[channel + 1]
+            short = cols[channel + 17]
+            if long != '':
+                longs.append(long)
+                shorts.append(short)
+                times.append(time)
+                channels.append(channel)
+
+            channel += 1
+    return dataset(shorts, longs, times, channels)
+
+
+def find_range(y, bins, cutoff):
+    current_range = [min(y), max(y)]
+    h, _ = np.histogram(y, bins, range=current_range)
+
+    while h[0] < cutoff * max(h):
+        bin_dist = (current_range[1] - current_range[0]) / bins
+        current_range[0] += 0.5 * bin_dist
+        h, _ = np.histogram(y, bins, range=current_range)
+
+    while h[-1] < cutoff * max(h):
+        bin_dist = (current_range[1] - current_range[0]) / bins
+        current_range[1] -= 0.5 * bin_dist
+        h, _ = np.histogram(y, bins, range=current_range)
+
+    return current_range
+
+
+def gaussian(x, a, mu, sigma_sq):
+    return a * np.exp(- ((x - mu) ** 2) / (2 * sigma_sq))
+
+
+def double_gaussian(x, a_1, a_2, mu_1, mu_2, sigma_sq_1, sigma_sq_2):
+    return gaussian(x, a_1, mu_1, sigma_sq_1) + gaussian(x, a_2, mu_2, sigma_sq_2)
+
+
+def analyze_run(data):
+    data = data.subset(data.long > data.short)
+    y = data.y()
+
+    autorange = find_range(y, 100, 0.005)
+    counts, bins = np.histogram(y, bins=100, range=autorange)
+    bin_centers = bins[0:-1] + 0.5 * (bins[1] - bins[0])
+
+    peaks = sig.argrelmax(counts)[0]
+
+    biggest, second = 0, 0
+
+    for peak in peaks:
+        if counts[peak] > counts[biggest]:
+            biggest = peak
+
+    for peak in peaks:
+        if counts[peak] > counts[second] and np.abs(peak - biggest) > 20:
+            second = peak
+
+    peak_two = bin_centers[biggest]
+    peak_one = bin_centers[second]
+
+    sigma_guess_one = 1.7e-2
+    sigma_guess_two = 1.7e-2
+
+    amp_one = counts[second]
+    amp_two = counts[biggest]
+
+    params, covariance = opt.curve_fit(
+        double_gaussian, bin_centers, counts,
+        p0=[amp_one, amp_two, peak_one, peak_two, sigma_guess_one, sigma_guess_two],
+        maxfev=99999
+    )
+
+    errors = np.sqrt(np.diag(covariance))
+
+    sigma_gamma = np.sqrt(params[4])
+    sigma_neutron = np.sqrt(params[5])
+    peak_diff = np.abs(params[3] - params[2])
+
+    fom = peak_diff / (2.355 * (sigma_gamma + sigma_neutron))
+    print("FOM = ", fom)
+
+    mu_gamma = params[2]
+    mu_neutron = params[3]
+
+    x_values = np.linspace(bins[0], bins[-1], 1000)
+    fitted_curve = double_gaussian(x_values, *params)
+    between_peaks = (x_values > mu_gamma) & (x_values < mu_neutron)
+    cutoff_value = x_values[fitted_curve == min(fitted_curve[between_peaks])][0]
+
+    if show_n_gamma:
+        print("found values are:")
+        print(f"cutoff value = {cutoff_value}")
+        print(f"sigma_gamma_sq = {params[4]} +- {errors[4]}")
+        print(f"sigma_neutron_sq = {params[5]} +- {errors[5]}")
+        print(f"mu_gamma = {params[2]} +- {errors[2]}")
+        print(f"mu_neutron = {params[3]} +- {errors[3]}")
+        print(f"a_gamma = {params[0]} +- {errors[0]}")
+        print(f"a_neutron = {params[1]} +- {errors[1]}")
+
+        plt.stairs(counts, bins)
+        plt.plot(x_values, double_gaussian(x_values, *params))
+        plt.vlines(cutoff_value, 0, max(fitted_curve) * 0.8)
+        plt.ylabel("count")
+        plt.xlabel(r"$\frac{long - short}{long}$")
+        plt.show()
+
+    return cutoff_value
+
+
+def csv_print(fname, *cols):
+    with open(fname, 'w') as file:
+        file.writelines([", ".join([str(c[i]) for c in cols]) + "\n" for i in range(len(cols[0]))])
+
+
+def pairs(iterable):
+    iterable = iter(iterable)
+    while True:
+        try:
+            a = next(iterable)
+            b = next(iterable)
+            yield a, b
+        except StopIteration:
+            return None
+
+
+def load_file(filename, format_mesy=False):
+    data = None
+    if format_mesy:
+        data = convert_mesy_file(filename)
+    else:
+        data = load_dataset(filename)
+
+    for i in range(1, len(data.time)):
+        if data.time[i] < data.time[i - 1]:
+            data.time[i:] += 2 ** 30
+
+    # 600us ?
+    time_const = 6.25e-8  # assumes 12.5ns
+    timing_offset_start = 600e-6 / time_const  # todo: make this the actual number for the offset from pulse to motion
+    timing_offset_end = 0.0 / time_const
+
+    # run n-gamma-discrimination
+    sync_channel = 3
+    data_channel = 2
+    cutoff = 0.3  # analyze_run(data.subset(data.channel == data_channel))
+    timing_pulses = data.subset(data.channel == sync_channel).time
+    timing_pulses = fix_timing_pulses(timing_pulses)
+    data = data.subset(data.channel == data_channel)
+    print(f"number of timing pulses is: {len(timing_pulses)}")
+    neutron_hits = data.subset(data.short < data.long)
+    neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)
+
+    # convert hits to fluency
+    # time_const = 6.25e-8 # assumes 12.5ns
+    times = neutron_hits.time
+
+    # assosicate position values to data
+    fluencies = []
+    x_points = []
+    y_points = []
+    line_count = len(timing_pulses) // 2
+    current_line = 0
+    fwd = True
+    for start, end in pairs(timing_pulses):
+        start -= timing_offset_start
+        end -= timing_offset_end
+        delta_t = end - start
+        timeborders = np.linspace(start, end, line_count + 1)
+        for i in range(0, line_count):
+            mask = (times >= timeborders[i]) & (times <= timeborders[i + 1])
+            fluencies.append(len(times[mask]) / delta_t)
+            x_points.append(i if fwd else line_count - i - 1)
+            y_points.append(current_line)
+        current_line += 1
+        fwd = not fwd
+
+    fluencies = list(np.array(fluencies) / max(fluencies))
+
+    # write result
+    # csv_print(argv[2], x_points, y_points, fluencies)
+    return (x_points, y_points, fluencies)
