@@ -20,6 +20,8 @@ def fix_timing_pulses(timing_data):
 
     correct_short = np.average(short_deltas)
     correct_long = np.average(long_deltas)
+    print(correct_short)
+    print(correct_long)
 
     # next_is_short = False# the last movement will always be a short one
 
@@ -35,18 +37,25 @@ def fix_timing_pulses(timing_data):
 
     i = 0
     next_long = True
+    insertions = 0
     while i < len(timing_data) - 1:
         delta = np.abs(timing_data[i] - timing_data[i + 1])
         if next_long and delta > 1.75 * correct_long:
             timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_long)
+            insertions += 1
             print("inserted missing timing pulse")
 
         if not next_long and delta > 1.75 * correct_short:
             timing_data = np.insert(timing_data, i + 1, timing_data[i] + correct_short)
+            insertions += 1
             print("inserted missing timing pulse")
 
         next_long = not next_long
         i += 1
+
+        if insertions > 100:
+            print("aborting due to too many timing pulse insertions")
+            break
 
     # plt.plot(timing_data)
     # plt.show()
@@ -69,7 +78,7 @@ class dataset:
 
 
 def load_dataset(filename):
-    raw = np.transpose(np.loadtxt(argv[1], delimiter=','))
+    raw = np.transpose(np.loadtxt(filename, delimiter=','))
     return dataset(short=raw[1], long=raw[0], time=raw[2], channel=raw[3])
 
 
@@ -92,12 +101,16 @@ def convert_mesy_file(in_file):
             long = cols[channel + 1]
             short = cols[channel + 17]
             if long != '':
-                longs.append(long)
-                shorts.append(short)
+                longs.append(float(long))
+                shorts.append(float(short))
                 times.append(time)
-                channels.append(channel)
+                channels.append(int(channel))
 
             channel += 1
+    shorts = np.array(shorts)
+    longs = np.array(longs)
+    times = np.array(times)
+    channels = np.array(channels)
     return dataset(shorts, longs, times, channels)
 
 
@@ -214,7 +227,7 @@ def pairs(iterable):
             return None
 
 
-def load_file(filename, format_mesy=False):
+def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data_chan=2):
     data = None
     if format_mesy:
         data = convert_mesy_file(filename)
@@ -231,11 +244,12 @@ def load_file(filename, format_mesy=False):
     timing_offset_end = 0.0 / time_const
 
     # run n-gamma-discrimination
-    sync_channel = 3
-    data_channel = 2
-    cutoff = 0.3  # analyze_run(data.subset(data.channel == data_channel))
+    sync_channel = timing_chan
+    data_channel = data_chan
+    cutoff = 0.35  # analyze_run(data.subset(data.channel == data_channel))
     timing_pulses = data.subset(data.channel == sync_channel).time
-    timing_pulses = fix_timing_pulses(timing_pulses)
+    if not intended_lc or len(timing_pulses) != 2 * intended_lc:
+        timing_pulses = fix_timing_pulses(timing_pulses)
     data = data.subset(data.channel == data_channel)
     print(f"number of timing pulses is: {len(timing_pulses)}")
     neutron_hits = data.subset(data.short < data.long)
