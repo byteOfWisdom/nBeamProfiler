@@ -33,7 +33,7 @@ def args_to_dict():
     res["format"] = get_assign("mesy_format", False)
     res["size"] = float(get_assign("size", 30.))
     res["scint_size"] = float(get_assign("scint_size", 2.54))
-    res["preview"] = bool(get_assign("preview", False))
+    res["preview"] = int(get_assign("preview", 0))
     return res
 
 
@@ -79,13 +79,18 @@ def main():
     # csv_data = to_csv(result)
     # print(csv_data)
 
-    if args['preview']:
+    if args['preview'] == 1:
         fig, ax = plt.subplots(2, 2)
         # plt.contour(result, levels=100)
         ax[0, 0].imshow(matrix(data))
         ax[0, 1].imshow(matrix(scint))
         ax[1, 0].imshow(np.zeros((2, 2)))
         ax[1, 1].imshow(result)
+        plt.show()
+    if args['preview'] == 2:
+        ax = plt.figure().add_subplot(projection='3d')
+        x, y = np.meshgrid(np.arange(args['lines']), np.arange(args['lines']))
+        ax.contour(x, y, matrix(data), levels=100)
         plt.show()
     # data_loading.csv_print(out_file, resul)
 

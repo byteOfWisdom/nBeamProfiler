@@ -240,8 +240,7 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
 
     # 600us ?
     time_const = 6.25e-8  # assumes 12.5ns
-    timing_offset_start = 600e-6 / time_const  # todo: make this the actual number for the offset from pulse to motion
-    timing_offset_end = 0.0 / time_const
+    timing_pulse_const_offset = int(0.05 / time_const)
 
     # run n-gamma-discrimination
     sync_channel = timing_chan
@@ -250,6 +249,8 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     timing_pulses = data.subset(data.channel == sync_channel).time
     if not intended_lc or len(timing_pulses) != 2 * intended_lc:
         timing_pulses = fix_timing_pulses(timing_pulses)
+    # timing_pulses += timing_pulse_const_offset
+
     data = data.subset(data.channel == data_channel)
     print(f"number of timing pulses is: {len(timing_pulses)}")
     neutron_hits = data.subset(data.short < data.long)
@@ -267,8 +268,8 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     current_line = 0
     fwd = True
     for start, end in pairs(timing_pulses):
-        start -= timing_offset_start
-        end -= timing_offset_end
+        start += timing_pulse_const_offset
+        end -= timing_pulse_const_offset
         delta_t = end - start
         timeborders = np.linspace(start, end, line_count + 1)
         for i in range(0, line_count):
