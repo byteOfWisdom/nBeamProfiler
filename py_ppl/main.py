@@ -76,7 +76,9 @@ def main():
     print(info)
     # print(data)
     # print(out_file)
-    # csv_data = to_csv(result)
+    csv_data = to_csv(result)
+    with open(args['out_file'], "w") as handle:
+        handle.write(csv_data)
     # print(csv_data)
 
     if args['preview'] == 1:
@@ -89,7 +91,7 @@ def main():
         plt.show()
     if args['preview'] == 2:
         ax = plt.figure().add_subplot(projection='3d')
-        x, y = np.meshgrid(np.arange(args['lines']), np.arange(args['lines']))
+        x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))
         ax.contour(x, y, matrix(data), levels=100)
         plt.show()
     # data_loading.csv_print(out_file, resul)
