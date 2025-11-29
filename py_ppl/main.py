@@ -86,7 +86,7 @@ def main():
         fig, ax = plt.subplots(2, 2)
         # plt.contour(result, levels=100)
         ax[0, 0].imshow(matrix(data))
-        ax[0, 1].imshow(matrix(scint))
+        ax[0, 1].imshow(scint)
         ax[1, 0].imshow(np.zeros((2, 2)))
         ax[1, 1].imshow(result)
         plt.show()

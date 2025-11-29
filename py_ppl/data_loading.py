@@ -271,6 +271,7 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
             fluencies.append(len(times[mask]) / delta_t)
             x_points.append(i if fwd else line_count - i - 1)
             y_points.append(current_line)
+        print(f"finished binning line {current_line}")
         current_line += 1
         fwd = not fwd
 
