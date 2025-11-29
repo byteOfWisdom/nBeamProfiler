@@ -8,7 +8,7 @@ from scipy import signal as sig
 
 def closest_time(times: np.ndarray, point: float) -> float:
     diff = np.abs(times - point)
-    return times[diff == min(diff)][0]
+    return times[diff == np.min(diff)][0]
 
 
 def fix_timing_pulses(timing_data):
@@ -150,7 +150,7 @@ def analyze_run(data):
     peaks = [-1, -1, -1]
     min_width = 2
     while len(peaks) > 2:
-        peaks, props = sig.find_peaks(counts, width=min_width, prominence=1.1)
+        peaks, _ = sig.find_peaks(counts, width=min_width, prominence=1.5, distance=min_width)
         min_width += 1
 
     peak_one = bin_centers[peaks[0]]
@@ -183,7 +183,7 @@ def analyze_run(data):
     x_values = np.linspace(bins[0], bins[-1], 1000)
     fitted_curve = double_gaussian(x_values, *params)
     between_peaks = (x_values > mu_gamma) & (x_values < mu_neutron)
-    cutoff_value = x_values[fitted_curve == min(fitted_curve[between_peaks])][0]
+    cutoff_value = x_values[fitted_curve == np.min(fitted_curve[between_peaks])][0]
 
     if show_n_gamma:
         print("found values are:")
