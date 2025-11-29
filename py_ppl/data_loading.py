@@ -82,7 +82,7 @@ def load_dataset(filename):
     return dataset(short=raw[1], long=raw[0], time=raw[2], channel=raw[3])
 
 
-show_n_gamma = True
+show_n_gamma = False
 
 
 def convert_mesy_file(in_file):
@@ -147,26 +147,20 @@ def analyze_run(data):
     counts, bins = np.histogram(y, bins=100, range=autorange)
     bin_centers = bins[0:-1] + 0.5 * (bins[1] - bins[0])
 
-    peaks = sig.argrelmax(counts)[0]
+    peaks = [-1, -1, -1]
+    min_width = 2
+    while len(peaks) > 2:
+        peaks, props = sig.find_peaks(counts, width=min_width, prominence=1.1)
+        min_width += 1
 
-    biggest, second = 0, 0
-
-    for peak in peaks:
-        if counts[peak] > counts[biggest]:
-            biggest = peak
-
-    for peak in peaks:
-        if counts[peak] > counts[second] and np.abs(peak - biggest) > 20:
-            second = peak
-
-    peak_two = bin_centers[biggest]
-    peak_one = bin_centers[second]
+    peak_one = bin_centers[peaks[0]]
+    peak_two = bin_centers[peaks[1]]
 
     sigma_guess_one = 1.7e-2
     sigma_guess_two = 1.7e-2
 
-    amp_one = counts[second]
-    amp_two = counts[biggest]
+    amp_one = counts[peaks[0]]
+    amp_two = counts[peaks[1]]
 
     params, covariance = opt.curve_fit(
         double_gaussian, bin_centers, counts,
@@ -245,13 +239,13 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     # run n-gamma-discrimination
     sync_channel = timing_chan
     data_channel = data_chan
-    cutoff = 0.35  # analyze_run(data.subset(data.channel == data_channel))
     timing_pulses = data.subset(data.channel == sync_channel).time
     if not intended_lc or len(timing_pulses) != 2 * intended_lc:
         timing_pulses = fix_timing_pulses(timing_pulses)
     # timing_pulses += timing_pulse_const_offset
 
     data = data.subset(data.channel == data_channel)
+    cutoff = analyze_run(data)
     print(f"number of timing pulses is: {len(timing_pulses)}")
     neutron_hits = data.subset(data.short < data.long)
     neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)

@@ -15,8 +15,8 @@ def square_scint(bin_count, size, area_size=30.):
     for i in range(1, one_bins + 1):
         mat[i][1:one_bins + 1] += 1.0 - partial_bins
 
-    mat = np.roll(mat, - one_bins // 2, 0)
-    mat = np.roll(mat, - one_bins // 2, 1)
+    # mat = np.roll(mat, - one_bins // 2, 0)
+    # mat = np.roll(mat, - one_bins // 2, 1)
 
     xs, ys, amps = [], [], []
     for i in range(bin_count):
