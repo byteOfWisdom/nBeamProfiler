@@ -16,8 +16,11 @@ def only_scint(bin_count, size, area_size=30.):
 
     x, y = np.meshgrid(np.linspace(-1, 1, one_bins + 2), np.linspace(-1, 1, one_bins + 2))
     efficiency_mask = np.exp(- (x**2 + y**2) / 0.5)
+    efficiency_mask *= 1 / np.max(efficiency_mask)
+    efficiency_mask *= 0.5
 
-    mat = mat * efficiency_mask
+    # mat = mat * efficiency_mask
+    mat -= efficiency_mask
     mat *= 1 / np.max(mat)
     return mat
 
@@ -26,6 +29,7 @@ def square_scint(bin_count, size, area_size=30.):
     mat = np.zeros((bin_count, bin_count))
 
     os = only_scint(bin_count, size, area_size)
+    return os
     x, y = np.shape(os)
 
     for i in range(x):

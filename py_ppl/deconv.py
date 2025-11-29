@@ -5,7 +5,6 @@ from skimage import restoration
 jl.seval("using DeconvOptim")
 
 
-
 def deconv(measured, scint, iterations):
     # res, meta = jl.deconvolution(measured, scint, regularizer=jl.TV(), iterations=iterations)
     res, meta = jl.deconvolution(measured, scint, iterations=iterations, loss=jl.Gauss())
