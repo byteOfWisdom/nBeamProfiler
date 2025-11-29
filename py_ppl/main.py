@@ -25,7 +25,7 @@ def get_assign(tag, default=None):
 def args_to_dict():
     res = {}
     res["in_file"] = get_assign("data")
-    res["out_file"] = get_assign("out")
+    res["out_file"] = get_assign("out", "")
     res["lines"] = int(get_assign("lines", 40))
     res["timing_channel"] = int(get_assign("timing_chan", 3))
     res["data_channel"] = int(get_assign("data_chan", 1))
@@ -54,7 +54,7 @@ def matrix(arr):
 
 
 def main():
-    if missing_args(["data", "out"]):
+    if missing_args(["data"]):
         print("missing relevant arguments")
         return
     args = args_to_dict()
@@ -71,14 +71,15 @@ def main():
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'])
     print("---- running deconvolution ----")
-    result, info = deconv.deconv_rl(matrix(data), matrix(scint), args["iterations"])
+    result, info = deconv.deconv_rl(matrix(data), scint, args["iterations"])
     # print(result)
     print(info)
     # print(data)
     # print(out_file)
     csv_data = to_csv(result)
-    with open(args['out_file'], "w") as handle:
-        handle.write(csv_data)
+    if args['out_file'] != "":
+        with open(args['out_file'], "w") as handle:
+            handle.write(csv_data)
     # print(csv_data)
 
     if args['preview'] == 1:
