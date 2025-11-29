@@ -5,12 +5,15 @@ def square_scint(bin_count, size, area_size=30.):
     scint_ratio = size / area_size
     bins = bin_count * scint_ratio
     one_bins = int(np.floor(bins))
-    # partial_bins = np.ceil(bins) - one_bins
+    partial_bins = 0.5 * (bins - one_bins)
 
     mat = np.zeros((bin_count, bin_count))
 
-    for i in range(one_bins):
-        mat[i][0:one_bins] += 1.0
+    for i in range(0, one_bins + 2):
+        mat[i][0:one_bins + 2] += partial_bins
+
+    for i in range(1, one_bins + 1):
+        mat[i][1:one_bins + 1] += 1.0 - partial_bins
 
     mat = np.roll(mat, - one_bins // 2, 0)
     mat = np.roll(mat, - one_bins // 2, 1)
