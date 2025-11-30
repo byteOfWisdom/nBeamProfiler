@@ -82,7 +82,7 @@ def main():
             handle.write(csv_data)
     # print(csv_data)
 
-    if args['preview'] == 1:
+    if args['preview'] == 1 or args['preview'] == 3:
         fig, ax = plt.subplots(2, 2)
         # plt.contour(result, levels=100)
         ax[0, 0].imshow(matrix(data))
@@ -90,10 +90,10 @@ def main():
         ax[1, 0].imshow(np.zeros((2, 2)))
         ax[1, 1].imshow(result)
         plt.show()
-    if args['preview'] == 2:
+    if args['preview'] == 2 or args['preview'] == 3:
         ax = plt.figure().add_subplot(projection='3d')
         x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))
-        ax.contour(x, y, matrix(data), levels=100)
+        ax.contour(x, y, result, levels=100)
         plt.show()
     # data_loading.csv_print(out_file, resul)
 

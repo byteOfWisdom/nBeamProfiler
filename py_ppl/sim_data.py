@@ -95,6 +95,7 @@ def main():
         if tp:
             file.write(f"{5}, {1}, {int(t * time_const)}, {3}\n")
         hit_count = int(1e3 * np.sum(beam_func(xs - x, ys - y) * scint))
+        hit_count += np.random.randint(0, 1000)
         # print(hit_count)
         total_hits += hit_count
         neutron_ys = iter(rng.normal(mu_neutron, sigma_neutron, hit_count))

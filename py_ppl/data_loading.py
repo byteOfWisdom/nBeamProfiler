@@ -16,7 +16,7 @@ def fix_timing_pulses(timing_data):
     time_deltas = timing_data[1:] - timing_data[:-1]
     # time_deltas = np.sort(time_deltas)[:- int(len(time_deltas) * 0.3)] # filter out too long deltas due to missing events
     long_deltas = time_deltas[time_deltas > np.average(time_deltas)]
-    long_deltas = np.sort(long_deltas)[:- int(len(long_deltas) * 0.3)] # filter out too long deltas due to missing events
+    long_deltas = np.sort(long_deltas)[:- int(len(long_deltas) * 0.3)]  # filter out too long deltas due to missing events
     short_deltas = time_deltas[time_deltas < np.average(time_deltas)]
 
     correct_short = np.average(short_deltas)
