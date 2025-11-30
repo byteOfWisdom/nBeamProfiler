@@ -27,7 +27,6 @@ class pbar:
 
 def test_print():
     bar = pbar(10, "testing ")
-    bar.next()
     for i in range(10):
         bar.next()
         sleep(0.5)
