@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import fileinput
 from scipy import optimize as opt
 from scipy import signal as sig
+import progress_print
 
 
 def closest_time(times: np.ndarray, point: float) -> float:
@@ -261,6 +262,7 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     line_count = len(timing_pulses) // 2
     current_line = 0
     fwd = True
+    prog_bar = progress_print.pbar(line_count, "binning lines ")
     for start, end in pairs(timing_pulses):
         start += timing_pulse_const_offset
         end -= timing_pulse_const_offset
@@ -271,7 +273,7 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
             fluencies.append(len(times[mask]) / delta_t)
             x_points.append(i if fwd else line_count - i - 1)
             y_points.append(current_line)
-        print(f"finished binning line {current_line}")
+        prog_bar.next()
         current_line += 1
         fwd = not fwd
 
