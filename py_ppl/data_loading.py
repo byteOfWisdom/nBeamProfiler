@@ -222,7 +222,7 @@ def pairs(iterable):
             return None
 
 
-def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data_chan=2):
+def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data_chan=2, n_gamma_co=0.0):
     data = None
     if format_mesy:
         data = convert_mesy_file(filename)
@@ -244,10 +244,12 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     if not intended_lc or len(timing_pulses) != 2 * intended_lc:
         timing_pulses = fix_timing_pulses(timing_pulses)
     # timing_pulses += timing_pulse_const_offset
+    print(f"number of timing pulses is: {len(timing_pulses)}")
 
     data = data.subset(data.channel == data_channel)
-    cutoff = analyze_run(data)
-    print(f"number of timing pulses is: {len(timing_pulses)}")
+    cutoff = n_gamma_co
+    if cutoff == 0.:
+        cutoff = analyze_run(data)
     neutron_hits = data.subset(data.short < data.long)
     neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)
 

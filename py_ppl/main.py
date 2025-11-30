@@ -34,6 +34,7 @@ def args_to_dict():
     res["size"] = float(get_assign("size", 30.))
     res["scint_size"] = float(get_assign("scint_size", 2.54))
     res["preview"] = int(get_assign("preview", 0))
+    res["n_gamma_cut"] = float(get_assign("n_gamma_cut", 0.))
     return res
 
 
@@ -62,12 +63,12 @@ def main():
     # out_file = args['out_file']
     mesy_format = args['format']
     print("---- loading input file ----")
-    data = data_loading.load_file(
-                                  data_file,
+    data = data_loading.load_file(data_file,
                                   mesy_format,
                                   args['lines'],
                                   args['timing_channel'],
-                                  args['data_channel'])
+                                  args['data_channel'],
+                                  args['n_gamma_cut'])
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'])
     print("---- running deconvolution ----")
