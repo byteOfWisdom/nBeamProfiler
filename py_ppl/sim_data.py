@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import square_scint
 from sys import argv
+import progress_print
 
 
 def beam_func(x, y):
@@ -23,6 +24,7 @@ def time_point_gen(dt):
     time_pulse = False
     fwd = True
     horizontal = True
+    prog_bar = progress_print.pbar(160, "simulating scan ")
     while 1:
         mx, my = to_x - x, to_y - y
         t += dt
@@ -41,15 +43,15 @@ def time_point_gen(dt):
                 horizontal = False
                 to_x = 0.0
             elif not horizontal:
-                print(f"finished line {current_line}")
                 horizontal = True
                 current_line += 1
+                prog_bar.next()
                 to_y += vert_step
 
         yield t, x, y, time_pulse
         time_pulse = False
 
-        if current_line > 160:
+        if current_line >= 160:
             return None
 
 

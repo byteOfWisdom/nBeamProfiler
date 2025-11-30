@@ -12,6 +12,8 @@ class pbar:
         self.next()
 
     def next(self):
+        if self.i > self.total:
+            return
         p = round(self.blocks * self.i / self.total)
         bar = "|" + "#" * p + "-" * (self.blocks - p) + "|"
         prog_num = str(self.i) + "/" + str(self.total)
