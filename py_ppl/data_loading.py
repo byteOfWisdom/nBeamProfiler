@@ -222,7 +222,7 @@ def pairs(iterable):
             return None
 
 
-def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data_chan=2, n_gamma_co=0.0):
+def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data_chan=2, n_gamma_co=0.0, dt_timing=0.0):
     data = None
     if format_mesy:
         data = convert_mesy_file(filename)
@@ -235,7 +235,8 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
 
     # 600us ?
     time_const = 6.25e-8  # assumes 12.5ns
-    timing_pulse_const_offset = int(0.05 / time_const)
+    # timing_pulse_const_offset = int(0.05 / time_const)
+    timing_pulse_const_offset = int(dt_timing / time_const)
 
     # run n-gamma-discrimination
     sync_channel = timing_chan

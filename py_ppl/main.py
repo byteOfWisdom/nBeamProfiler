@@ -35,6 +35,7 @@ def args_to_dict():
     res["scint_size"] = float(get_assign("scint_size", 2.54))
     res["preview"] = int(get_assign("preview", 0))
     res["n_gamma_cut"] = float(get_assign("n_gamma_cut", 0.))
+    res["dt_timing"] = float(get_assign("dt_timing", 0.0))
     return res
 
 
@@ -68,7 +69,8 @@ def main():
                                   args['lines'],
                                   args['timing_channel'],
                                   args['data_channel'],
-                                  args['n_gamma_cut'])
+                                  args['n_gamma_cut'],
+                                  args['dt_timing'])
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'])
     print("---- running deconvolution ----")
