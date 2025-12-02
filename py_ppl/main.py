@@ -28,7 +28,7 @@ def args_to_dict():
     res["out_file"] = get_assign("out", "")
     res["lines"] = int(get_assign("lines", 160))
     res["timing_channel"] = int(get_assign("timing_chan", 3))
-    res["data_channel"] = int(get_assign("data_chan", 1))
+    res["data_channel"] = int(get_assign("data_chan", 2))
     res["iterations"] = int(get_assign("iter", 1000))
     res["format"] = get_assign("mesy_format", False)
     res["size"] = float(get_assign("size", 30.))
