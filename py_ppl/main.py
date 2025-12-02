@@ -36,6 +36,7 @@ def args_to_dict():
     res["preview"] = int(get_assign("preview", 0))
     res["n_gamma_cut"] = float(get_assign("n_gamma_cut", 0.))
     res["dt_timing"] = float(get_assign("dt_timing", 0.0))
+    res["no_deconv"] = bool(get_assign("no_deconv", False))
     return res
 
 
@@ -71,6 +72,12 @@ def main():
                                   args['data_channel'],
                                   args['n_gamma_cut'],
                                   args['dt_timing'])
+
+    if args['no_deconv']:
+        plt.imshow(matrix(data))
+        plt.show()
+        return
+
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'])
     print("---- running deconvolution ----")
