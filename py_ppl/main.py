@@ -37,6 +37,7 @@ def args_to_dict():
     res["n_gamma_cut"] = float(get_assign("n_gamma_cut", 0.))
     res["dt_timing"] = float(get_assign("dt_timing", 0.0))
     res["no_deconv"] = bool(get_assign("no_deconv", False))
+    res["scint_amp_mod"] = float(get_assign("scint_amp_mod", 0.25))
     return res
 
 
@@ -79,7 +80,7 @@ def main():
         return
 
     print("---- generating scintillator mask ----")
-    scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'])
+    scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'], args['scint_amp_mod'])
     print("---- running deconvolution ----")
     result, info = deconv.deconv_rl(matrix(data), scint, args["iterations"])
     # print(result)

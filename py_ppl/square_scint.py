@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def only_scint(bin_count, size, area_size=30.):
+def only_scint(bin_count, size, area_size=30., gaussian_amp=0.25):
     scint_ratio = size / area_size
     bins = bin_count * scint_ratio
     one_bins = int(np.floor(bins))
@@ -17,7 +17,7 @@ def only_scint(bin_count, size, area_size=30.):
     x, y = np.meshgrid(np.linspace(-1, 1, one_bins + 2), np.linspace(-1, 1, one_bins + 2))
     efficiency_mask = np.exp(- (x**2 + y**2) / 0.5)
     efficiency_mask *= 1 / np.max(efficiency_mask)
-    efficiency_mask *= 0.25
+    efficiency_mask *= gaussian_amp
 
     # mat = mat * efficiency_mask
     mat += efficiency_mask
@@ -25,10 +25,10 @@ def only_scint(bin_count, size, area_size=30.):
     return mat
 
 
-def square_scint(bin_count, size, area_size=30.):
+def square_scint(bin_count, size, area_size=30., gaussian_amp=0.25):
     mat = np.zeros((bin_count, bin_count))
 
-    os = only_scint(bin_count, size, area_size)
+    os = only_scint(bin_count, size, area_size, gaussian_amp)
     return os
     x, y = np.shape(os)
 
