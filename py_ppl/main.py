@@ -3,6 +3,7 @@ from sys import argv
 import deconv
 import data_loading
 import square_scint
+import post_process
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -38,6 +39,7 @@ def args_to_dict():
     res["dt_timing"] = float(get_assign("dt_timing", 0.0))
     res["no_deconv"] = bool(get_assign("no_deconv", False))
     res["scint_amp_mod"] = float(get_assign("scint_amp_mod", 0.25))
+    res["fit_beam_shape"] = bool(get_assign("fit_beam", False))
     return res
 
 
@@ -92,6 +94,10 @@ def main():
         with open(args['out_file'], "w") as handle:
             handle.write(csv_data)
     # print(csv_data)
+
+    if args['fit_beam_shape']:
+        print("---- attempting to fit a shape to the data ----")
+        post_process.fit_beam(result)
 
     if args['preview'] == 1 or args['preview'] == 3:
         fig, ax = plt.subplots(2, 2)
