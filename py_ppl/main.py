@@ -6,6 +6,7 @@ import square_scint
 import post_process
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib
 
 
 def to_csv(mat):
@@ -75,6 +76,27 @@ def main():
                                   args['data_channel'],
                                   args['n_gamma_cut'],
                                   args['dt_timing'])
+    
+    #extract long_data from one channel (target channel = usecols), NaN values set to zero (NaN = other channel recorded event)
+    long_data = np.genfromtxt(data_file, delimiter=',', skip_header=0, usecols=0, filling_values = 0)
+    long_data = np.asarray(long_data).flatten()
+    # print("Long Data is: " + str(len(long_data)))
+    
+    #extract short_datafrom one channel (target channel = usecols), NaN values set to zero (NaN = other channel recorded event)
+    short_data = np.genfromtxt(data_file, delimiter=',', skip_header=0, usecols=1, filling_values = 0)
+    short_data = np.asarray(short_data).flatten()
+    # print("Short Data is: " + str(len(short_data)))
+
+    #filter: long > short :long must be greater as short; makes no sense to have more in short than in long
+    long_data_clean = []
+    short_data_clean = []
+    for i in range(len(long_data)):
+        if (long_data[i] > short_data[i]):
+            long_data_clean += [long_data[i]]
+            short_data_clean += [short_data[i]]
+    
+    long_data_clean  = np.asarray(long_data_clean).flatten()
+    short_data_clean = np.asarray(short_data_clean).flatten()
 
     if args['no_deconv']:
         plt.imshow(matrix(data))
@@ -102,10 +124,17 @@ def main():
     if args['preview'] == 1 or args['preview'] == 3:
         fig, ax = plt.subplots(2, 2)
         # plt.contour(result, levels=100)
+        ax[0, 0].title.set_text("raw data")
         ax[0, 0].imshow(matrix(data))
+        ax[0, 1].title.set_text("scint function")
         ax[0, 1].imshow(scint)
-        ax[1, 0].imshow(np.zeros((2, 2)))
+        ax[1, 0].title.set_text("PSD")
+        ax[1, 0].hist2d(long_data_clean, ((long_data_clean - short_data_clean) / (long_data_clean)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
+        # ax[1, 0].set_ylim(0.1,0.5)
+        # ax[1, 0].imshow(np.zeros((2, 2)))
+        ax[1, 1].title.set_text("unfolded data")
         ax[1, 1].imshow(result)
+        fig.tight_layout()
         plt.show()
     if args['preview'] == 2 or args['preview'] == 3:
         ax = plt.figure().add_subplot(projection='3d')
@@ -116,6 +145,9 @@ def main():
         ax.contourf(x, y, result, zdir='x', offset=0, levels=300, cmap='rainbow')
         # ax.contourf(x, y, result, zdir='y', offset=args['lines'], levels=10, cmap='rainbow')  #projection with number of scan lines
         ax.contourf(x, y, result, zdir='y', offset=30, levels=300, cmap='rainbow')               #projection with scaled to 30cm
+        ax.set_xlabel("x / cm")
+        ax.set_ylabel("y / cm")
+
         plt.show()
         # print(np.max(data[0]))
         # print(np.max(data[1]))

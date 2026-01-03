@@ -251,8 +251,13 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     cutoff = n_gamma_co
     if cutoff == 0.:
         cutoff = analyze_run(data)
+    # print("Long Data is: " + str(len(data.long)))                               ##########
+    # data = data.subset(data.long > 15000)                                       ##########
+    # print("Long Data is: " + str(len(data.long)))                               ##########
     neutron_hits = data.subset(data.short < data.long)
     neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)
+    neutron_hits = neutron_hits.subset(neutron_hits.y() < 0.6)                  ##########
+    # print("Neutron Hits is: " + str(len(neutron_hits.long)))                    ##########
 
     # convert hits to fluency
     # time_const = 6.25e-8 # assumes 12.5ns
