@@ -109,9 +109,16 @@ def main():
         plt.show()
     if args['preview'] == 2 or args['preview'] == 3:
         ax = plt.figure().add_subplot(projection='3d')
-        x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))
+        ax.view_init(elev=45, azim=-45, roll=0)
+        # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
+        x, y = np.meshgrid(np.linspace(0,30,np.max(data[0]) + 1), np.linspace(0,30,np.max(data[1]) + 1))#meshgrid with lines to 30cm
         ax.contour(x, y, result, levels=100)
+        ax.contourf(x, y, result, zdir='x', offset=0, levels=300, cmap='rainbow')
+        # ax.contourf(x, y, result, zdir='y', offset=args['lines'], levels=10, cmap='rainbow')  #projection with number of scan lines
+        ax.contourf(x, y, result, zdir='y', offset=30, levels=300, cmap='rainbow')               #projection with scaled to 30cm
         plt.show()
+        # print(np.max(data[0]))
+        # print(np.max(data[1]))
     # data_loading.csv_print(out_file, resul)
 
 
