@@ -256,7 +256,7 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     # print("Long Data is: " + str(len(data.long)))                               ##########
     neutron_hits = data.subset(data.short < data.long)
     neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)
-    neutron_hits = neutron_hits.subset(neutron_hits.y() < 0.6)                  ##########
+    # neutron_hits = neutron_hits.subset(neutron_hits.y() < 0.6)                  ##########
     # print("Neutron Hits is: " + str(len(neutron_hits.long)))                    ##########
 
     # convert hits to fluency
