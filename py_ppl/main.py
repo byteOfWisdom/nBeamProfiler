@@ -137,7 +137,13 @@ def main():
         fig.tight_layout()
         plt.show()
     if args['preview'] == 2 or args['preview'] == 3:
-        ax = plt.figure().add_subplot(projection='3d')
+        fig = plt.figure(figsize=plt.figaspect(0.5))
+        # ax = fig.add_subplot(1, 2, 1, projection='3d')
+        ax = fig.add_subplot(1, 2, 1)
+        ax.title.set_text("raw data")
+        ax.contourf(matrix(data),levels=100)
+        # ax.contour(matrix(data)[0], matrix(data)[1], matrix(data)[2],levels=100, axlim_clip=True)
+        ax = fig.add_subplot(1, 2, 2, projection='3d')
         ax.view_init(elev=45, azim=-45, roll=0)
         # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
         x, y = np.meshgrid(np.linspace(0,30,np.max(data[0]) + 1), np.linspace(0,30,np.max(data[1]) + 1))#meshgrid with lines to 30cm
