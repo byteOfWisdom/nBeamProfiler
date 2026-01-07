@@ -137,25 +137,57 @@ def main():
         fig.tight_layout()
         plt.show()
     if args['preview'] == 2 or args['preview'] == 3:
-        fig = plt.figure(figsize=plt.figaspect(0.5))
-        # ax = fig.add_subplot(1, 2, 1, projection='3d')
-        ax = fig.add_subplot(1, 2, 1)
+        lower_x = 10    #lower x value in cm for plotting
+        upper_x = 22    #upper x value in cm for plotting
+        lower_y = 10    #lower y value in cm for plotting
+        upper_y = 22    #upper y value in cm for plotting
+        fig = plt.figure(figsize=plt.figaspect(0.33))
+        ax = fig.add_subplot(1, 3, 1, projection='3d')
         ax.title.set_text("raw data")
-        ax.contourf(matrix(data),levels=100)
-        # ax.contour(matrix(data)[0], matrix(data)[1], matrix(data)[2],levels=100, axlim_clip=True)
-        ax = fig.add_subplot(1, 2, 2, projection='3d')
+        ax.view_init(elev=45, azim=-45, roll=0)
+        x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
+        ax.contour(x, y, matrix(data), levels=100, axlim_clip=True)
+        ax.contourf(x, y, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/30, levels=300, cmap='rainbow', axlim_clip=True)
+        ax.contourf(x, y, matrix(data), zdir='y', offset=upper_y*(np.max(data[0])+1)/30, levels=300, cmap='rainbow', axlim_clip=True)
+        ax.set_zlim(0,1.1)
+        ax.set_xlim(lower_x*(np.max(data[0])+1)/30, upper_x*(np.max(data[0])+1)/30)
+        ax.set_ylim(lower_y*(np.max(data[0])+1)/30, upper_y*(np.max(data[0])+1)/30)
+        ax.set_xlabel("x / lines")
+        ax.set_ylabel("y / lines")
+        ax.set_zlabel("normalised intensity")
+
+        ax = fig.add_subplot(1, 3, 2, projection='3d')
+        ax.title.set_text("unfolded data")
         ax.view_init(elev=45, azim=-45, roll=0)
         # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
         x, y = np.meshgrid(np.linspace(0,30,np.max(data[0]) + 1), np.linspace(0,30,np.max(data[1]) + 1))#meshgrid with lines to 30cm
         ax.contour(x, y, result, levels=100, axlim_clip=True)
-        ax.contourf(x, y, result, zdir='x', offset=10, levels=300, cmap='rainbow', axlim_clip=True)
+        ax.contourf(x, y, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
         # ax.contourf(x, y, result, zdir='y', offset=args['lines'], levels=10, cmap='rainbow', axlim_clip=True)  #projection with number of scan lines
-        ax.contourf(x, y, result, zdir='y', offset=22, levels=300, cmap='rainbow', axlim_clip=True)               #projection with scaled to 30cm
+        ax.contourf(x, y, result, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)               #projection with scaled to 30cm
         # ax.set_xlim(0,30)
         # ax.set_ylim(0,30)
         ax.set_zlim(0,1.1)
-        ax.set_xlim(10,22)
-        ax.set_ylim(10,22)
+        ax.set_xlim(lower_x,upper_x)
+        ax.set_ylim(lower_y,upper_y)
+        ax.set_xlabel("x / cm")
+        ax.set_ylabel("y / cm")
+        ax.set_zlabel("normalised intensity")
+
+        ax = fig.add_subplot(1, 3, 3, projection='3d')
+        ax.title.set_text("(soon) refolded data")
+        ax.view_init(elev=45, azim=-45, roll=0)
+        # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
+        x, y = np.meshgrid(np.linspace(0,30,np.max(data[0]) + 1), np.linspace(0,30,np.max(data[1]) + 1))#meshgrid with lines to 30cm
+        ax.contour(x, y, result, levels=100, axlim_clip=True)
+        ax.contourf(x, y, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
+        # ax.contourf(x, y, result, zdir='y', offset=args['lines'], levels=10, cmap='rainbow', axlim_clip=True)  #projection with number of scan lines
+        ax.contourf(x, y, result, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)               #projection with scaled to 30cm
+        # ax.set_xlim(0,30)
+        # ax.set_ylim(0,30)
+        ax.set_zlim(0,1.1)
+        ax.set_xlim(lower_x,upper_x)
+        ax.set_ylim(lower_y,upper_y)
         ax.set_xlabel("x / cm")
         ax.set_ylabel("y / cm")
         ax.set_zlabel("normalised intensity")
