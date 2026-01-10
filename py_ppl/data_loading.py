@@ -161,7 +161,7 @@ def PSD_Heatmap(data):
     
     long_data_clean  = np.asarray(long_data_clean).flatten()
     short_data_clean = np.asarray(short_data_clean).flatten()
-    print(max(long_data_clean))
+    # print(max(long_data_clean))
 
     return long_data_clean, short_data_clean
 

@@ -109,6 +109,7 @@ def main():
     for i in range(args["iterations"]+1):
         result_next, info2 = deconv.deconv_rl(matrix(data), scint, i)
         reconvolved_next = np.array(conv2(result_next, scint, mode='same'))
+        reconvolved_next = np.array(reconvolved_next) / np.amax(reconvolved_next)
         if i > 0:
             # print( np.sum( (result_next - result_old)**2 ) )
             diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))
@@ -118,6 +119,8 @@ def main():
         # print(diff1)
         # print(diff2)
         # print(info2 + " for " + str(i) + " times")
+    min_index = np.argmin(diff2)
+    print("Minimum reached after " + str(min_index+1) + " iterations with " + str(diff2[min_index]))
 
 
     csv_data = to_csv(result)
