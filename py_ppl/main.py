@@ -7,6 +7,7 @@ import post_process
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib
+from scipy.signal import convolve2d as conv2
 
 
 def to_csv(mat):
@@ -93,6 +94,12 @@ def main():
     # print(data)
     # print(out_file)
 
+    reconvolved = np.array(conv2(result, scint, mode='same', boundary='symm'))
+    # print(np.amax(reconvolved))
+    reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)
+    # print(np.amax(reconvolved_norm))
+    print("Re-convolution successful")
+
     diff = []
     result_old =[]
     result_next =[]
@@ -152,8 +159,10 @@ def main():
         ax.contourf(x, y, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/30, levels=300, cmap='rainbow', axlim_clip=True)
         ax.contourf(x, y, matrix(data), zdir='y', offset=upper_y*(np.max(data[0])+1)/30, levels=300, cmap='rainbow', axlim_clip=True)
         ax.set_zlim(0,1.1)
-        ax.set_xlim(lower_x*(np.max(data[0])+1)/30, upper_x*(np.max(data[0])+1)/30)
-        ax.set_ylim(lower_y*(np.max(data[0])+1)/30, upper_y*(np.max(data[0])+1)/30)
+        # ax.set_xlim(lower_x,upper_x)
+        # ax.set_ylim(lower_y,upper_y)
+        ax.set_xlim(lower_x*(np.max(data[0])+1)/30, upper_x*(np.max(data[0])+1)/30) #x-axis in lines
+        ax.set_ylim(lower_y*(np.max(data[0])+1)/30, upper_y*(np.max(data[0])+1)/30) #y-axis in lines 
         ax.set_xlabel("x / lines")
         ax.set_ylabel("y / lines")
         ax.set_zlabel("normalised intensity")
@@ -181,10 +190,10 @@ def main():
         ax.view_init(elev=45, azim=-45, roll=0)
         # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
         x, y = np.meshgrid(np.linspace(0,30,np.max(data[0]) + 1), np.linspace(0,30,np.max(data[1]) + 1))#meshgrid with lines to 30cm
-        ax.contour(x, y, result, levels=100, axlim_clip=True)
-        ax.contourf(x, y, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
+        ax.contour(x, y, reconvolved_norm, levels=300, axlim_clip=True)
+        ax.contourf(x, y, reconvolved_norm, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
         # ax.contourf(x, y, result, zdir='y', offset=args['lines'], levels=10, cmap='rainbow', axlim_clip=True)  #projection with number of scan lines
-        ax.contourf(x, y, result, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)               #projection with scaled to 30cm
+        ax.contourf(x, y, reconvolved_norm, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)               #projection with scaled to 30cm
         # ax.set_xlim(0,30)
         # ax.set_ylim(0,30)
         ax.set_zlim(0,1.1)
@@ -197,7 +206,6 @@ def main():
         ax = fig.add_subplot(2, 2, 4)
         ax.title.set_text("change in unfolding")
         x = np.linspace(1,args["iterations"], num=args["iterations"])
-        print(x)
         ax.plot(x,diff)
         # ax.set_xlim(0,30)
         # ax.set_ylim(0,30)
