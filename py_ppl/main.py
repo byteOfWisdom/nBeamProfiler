@@ -94,23 +94,30 @@ def main():
     # print(data)
     # print(out_file)
 
-    reconvolved = np.array(conv2(result, scint, mode='same', boundary='symm'))
+    reconvolved = np.array(conv2(result, scint, mode='same'))
     # print(np.amax(reconvolved))
     reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)
     # print(np.amax(reconvolved_norm))
     print("Re-convolution successful")
 
-    diff = []
+    diff1 = []
+    diff2 = []
     result_old =[]
     result_next =[]
+    reconvolved_old = []
+    reconvolved_next = []
     for i in range(args["iterations"]+1):
         result_next, info2 = deconv.deconv_rl(matrix(data), scint, i)
+        reconvolved_next = np.array(conv2(result_next, scint, mode='same'))
         if i > 0:
             # print( np.sum( (result_next - result_old)**2 ) )
-            diff = np.append(diff, np.sqrt(np.sum( (result_next - result_old)**2) ))
+            diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))
+            diff2 = np.append(diff2, np.sqrt(np.sum( (reconvolved_old - matrix(data))**2) ))
         result_old = result_next
-        # print(diff)
-        print(info2 + " for " + str(i) + " times")
+        reconvolved_old = reconvolved_next
+        # print(diff1)
+        # print(diff2)
+        # print(info2 + " for " + str(i) + " times")
 
 
     csv_data = to_csv(result)
@@ -186,7 +193,7 @@ def main():
         ax.set_zlabel("normalised intensity")
 
         ax = fig.add_subplot(2, 2, 3, projection='3d')
-        ax.title.set_text("(soon) refolded data")
+        ax.title.set_text("refolded data")
         ax.view_init(elev=45, azim=-45, roll=0)
         # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
         x, y = np.meshgrid(np.linspace(0,30,np.max(data[0]) + 1), np.linspace(0,30,np.max(data[1]) + 1))#meshgrid with lines to 30cm
@@ -206,7 +213,8 @@ def main():
         ax = fig.add_subplot(2, 2, 4)
         ax.title.set_text("change in unfolding")
         x = np.linspace(1,args["iterations"], num=args["iterations"])
-        ax.plot(x,diff)
+        ax.plot(x,diff1, color='r')
+        ax.plot(x,diff2, color='blue')
         # ax.set_xlim(0,30)
         # ax.set_ylim(0,30)
         # ax.set_xlim(lower_x,upper_x)
