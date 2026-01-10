@@ -77,26 +77,7 @@ def main():
                                   args['n_gamma_cut'],
                                   args['dt_timing'])
     
-    #extract long_data from one channel (target channel = usecols), NaN values set to zero (NaN = other channel recorded event)
-    long_data = np.genfromtxt(data_file, delimiter=',', skip_header=0, usecols=0, filling_values = 0)
-    long_data = np.asarray(long_data).flatten()
-    # print("Long Data is: " + str(len(long_data)))
-    
-    #extract short_datafrom one channel (target channel = usecols), NaN values set to zero (NaN = other channel recorded event)
-    short_data = np.genfromtxt(data_file, delimiter=',', skip_header=0, usecols=1, filling_values = 0)
-    short_data = np.asarray(short_data).flatten()
-    # print("Short Data is: " + str(len(short_data)))
-
-    #filter: long > short :long must be greater as short; makes no sense to have more in short than in long
-    long_data_clean = []
-    short_data_clean = []
-    for i in range(len(long_data)):
-        if (long_data[i] > short_data[i]):
-            long_data_clean += [long_data[i]]
-            short_data_clean += [short_data[i]]
-    
-    long_data_clean  = np.asarray(long_data_clean).flatten()
-    short_data_clean = np.asarray(short_data_clean).flatten()
+    long_data , short_data = data_loading.PSD_Heatmap(data_file)
 
     if args['no_deconv']:
         plt.imshow(matrix(data))
@@ -111,6 +92,20 @@ def main():
     print(info)
     # print(data)
     # print(out_file)
+
+    diff = []
+    result_old =[]
+    result_next =[]
+    for i in range(args["iterations"]+1):
+        result_next, info2 = deconv.deconv_rl(matrix(data), scint, i)
+        if i > 0:
+            # print( np.sum( (result_next - result_old)**2 ) )
+            diff = np.append(diff, np.sqrt(np.sum( (result_next - result_old)**2) ))
+        result_old = result_next
+        # print(diff)
+        print(info2 + " for " + str(i) + " times")
+
+
     csv_data = to_csv(result)
     if args['out_file'] != "":
         with open(args['out_file'], "w") as handle:
@@ -123,17 +118,24 @@ def main():
 
     if args['preview'] == 1 or args['preview'] == 3:
         fig, ax = plt.subplots(2, 2)
-        # plt.contour(result, levels=100)
+        #
         ax[0, 0].title.set_text("raw data")
         ax[0, 0].imshow(matrix(data))
+        #
         ax[0, 1].title.set_text("scint function")
         ax[0, 1].imshow(scint)
+        #
         ax[1, 0].title.set_text("PSD")
-        ax[1, 0].hist2d(long_data_clean, ((long_data_clean - short_data_clean) / (long_data_clean)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
-        # ax[1, 0].set_ylim(0.1,0.5)
-        # ax[1, 0].imshow(np.zeros((2, 2)))
+        ax[1, 0].hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
+        ax[1, 0].axhline(y=args['n_gamma_cut'], color='black', linestyle='-')
+        ax[1, 0].text(60000, args['n_gamma_cut']+0.02, 'neutrons', fontsize=12, color='black', ha='center', va='center')
+        ax[1, 0].text(60000, args['n_gamma_cut']-0.02, 'gammas', fontsize=12, color='black', ha='center', va='center')
+        ax[1, 0].set_xlabel("long")
+        ax[1, 0].set_ylabel("(long-short)/long")
+        #
         ax[1, 1].title.set_text("unfolded data")
         ax[1, 1].imshow(result)
+        #
         fig.tight_layout()
         plt.show()
     if args['preview'] == 2 or args['preview'] == 3:
@@ -141,8 +143,8 @@ def main():
         upper_x = 22    #upper x value in cm for plotting
         lower_y = 10    #lower y value in cm for plotting
         upper_y = 22    #upper y value in cm for plotting
-        fig = plt.figure(figsize=plt.figaspect(0.33))
-        ax = fig.add_subplot(1, 3, 1, projection='3d')
+        fig = plt.figure(figsize=plt.figaspect(0.5))
+        ax = fig.add_subplot(2, 2, 1, projection='3d')
         ax.title.set_text("raw data")
         ax.view_init(elev=45, azim=-45, roll=0)
         x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
@@ -156,7 +158,7 @@ def main():
         ax.set_ylabel("y / lines")
         ax.set_zlabel("normalised intensity")
 
-        ax = fig.add_subplot(1, 3, 2, projection='3d')
+        ax = fig.add_subplot(2, 2, 2, projection='3d')
         ax.title.set_text("unfolded data")
         ax.view_init(elev=45, azim=-45, roll=0)
         # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
@@ -174,7 +176,7 @@ def main():
         ax.set_ylabel("y / cm")
         ax.set_zlabel("normalised intensity")
 
-        ax = fig.add_subplot(1, 3, 3, projection='3d')
+        ax = fig.add_subplot(2, 2, 3, projection='3d')
         ax.title.set_text("(soon) refolded data")
         ax.view_init(elev=45, azim=-45, roll=0)
         # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
@@ -191,6 +193,20 @@ def main():
         ax.set_xlabel("x / cm")
         ax.set_ylabel("y / cm")
         ax.set_zlabel("normalised intensity")
+
+        ax = fig.add_subplot(2, 2, 4)
+        ax.title.set_text("change in unfolding")
+        x = np.linspace(1,args["iterations"], num=args["iterations"])
+        print(x)
+        ax.plot(x,diff)
+        # ax.set_xlim(0,30)
+        # ax.set_ylim(0,30)
+        # ax.set_xlim(lower_x,upper_x)
+        # ax.set_ylim(lower_y,upper_y)
+        ax.grid()
+        ax.set_yscale('log')
+        ax.set_xlabel("no. of Richardson Lucy iterations")
+        ax.set_ylabel("sqrt(sum( (iter_n+1 - iter_n)**2 ) )")
 
         plt.show()
         # print(np.max(data[0]))
