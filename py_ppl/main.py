@@ -216,8 +216,8 @@ def main():
         ax = fig.add_subplot(2, 2, 4)
         ax.title.set_text("change in unfolding")
         x = np.linspace(1,args["iterations"], num=args["iterations"])
-        ax.plot(x,diff1, color='r')
-        ax.plot(x,diff2, color='blue')
+        ax.plot(x,diff1, color='r', label='change between iterations')
+        ax.plot(x,diff2, color='blue', label='diff between re-convoluted and raw data')
         # ax.set_xlim(0,30)
         # ax.set_ylim(0,30)
         # ax.set_xlim(lower_x,upper_x)
@@ -226,6 +226,7 @@ def main():
         ax.set_yscale('log')
         ax.set_xlabel("no. of Richardson Lucy iterations")
         ax.set_ylabel("sqrt(sum( (iter_n+1 - iter_n)**2 ) )")
+        ax.legend(loc="best")
 
         plt.show()
         # print(np.max(data[0]))
