@@ -140,6 +140,32 @@ def double_gaussian(x, a_1, a_2, mu_1, mu_2, sigma_sq_1, sigma_sq_2):
     return gaussian(x, a_1, mu_1, sigma_sq_1) + gaussian(x, a_2, mu_2, sigma_sq_2)
 
 
+def PSD_Heatmap(data):
+    #extract long_data from one channel (target channel = usecols), NaN values set to zero (NaN = other channel recorded event)
+    long_data = np.genfromtxt(data, delimiter=',', skip_header=0, usecols=0, filling_values = 0)
+    long_data = np.asarray(long_data).flatten()
+    # print("Long Data is: " + str(len(long_data)))
+    
+    #extract short_datafrom one channel (target channel = usecols), NaN values set to zero (NaN = other channel recorded event)
+    short_data = np.genfromtxt(data, delimiter=',', skip_header=0, usecols=1, filling_values = 0)
+    short_data = np.asarray(short_data).flatten()
+    # print("Short Data is: " + str(len(short_data)))
+
+    #filter: long > short :long must be greater as short; makes no sense to have more in short than in long
+    long_data_clean = []
+    short_data_clean = []
+    for i in range(len(long_data)):
+        if (65535.0 > long_data[i] > short_data[i]):
+            long_data_clean += [long_data[i]]
+            short_data_clean += [short_data[i]]
+    
+    long_data_clean  = np.asarray(long_data_clean).flatten()
+    short_data_clean = np.asarray(short_data_clean).flatten()
+    # print(max(long_data_clean))
+
+    return long_data_clean, short_data_clean
+
+
 def analyze_run(data):
     data = data.subset(data.long > data.short)
     y = data.y()
@@ -251,8 +277,13 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     cutoff = n_gamma_co
     if cutoff == 0.:
         cutoff = analyze_run(data)
+    # print("Long Data is: " + str(len(data.long)))                               ##########
+    # data = data.subset(data.long > 15000)                                       ##########
+    # print("Long Data is: " + str(len(data.long)))                               ##########
     neutron_hits = data.subset(data.short < data.long)
     neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)
+    # neutron_hits = neutron_hits.subset(neutron_hits.y() < 0.6)                  ##########
+    # print("Neutron Hits is: " + str(len(neutron_hits.long)))                    ##########
 
     # convert hits to fluency
     # time_const = 6.25e-8 # assumes 12.5ns
