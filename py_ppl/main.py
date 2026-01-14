@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib
 from scipy.signal import convolve2d as conv2
+from scipy.optimize import curve_fit
 
 
 def to_csv(mat):
@@ -60,6 +61,18 @@ def matrix(arr):
         res[x][y] = v
     return res
 
+# Define the 2D super-Gaussian model
+def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n):
+    x, y = coords
+    # Ensure sigma values and exponent are positive
+    sigma_x = abs(sigma_x)
+    sigma_y = abs(sigma_y)
+    n = abs(n)
+    exponent = ((x - x0) / sigma_x) ** (2 * n) + ((y - y0) / sigma_y) ** (2 * n)
+    return (A * np.exp(-exponent) ).ravel()
+
+
+
 
 def main():
     if missing_args(["data"]):
@@ -85,21 +98,19 @@ def main():
         plt.show()
         return
 
+    #DECONVOLUTION
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'], args['scint_amp_mod'])
     print("---- running deconvolution ----")
     result, info = deconv.deconv_rl(matrix(data), scint, args["iterations"])
-    # print(result)
     print(info)
-    # print(data)
-    # print(out_file)
 
+    #RE-CONVOLUTION
     reconvolved = np.array(conv2(result, scint, mode='same'))
-    # print(np.amax(reconvolved))
     reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)
-    # print(np.amax(reconvolved_norm))
-    print("Re-convolution successful")
+    print("---- Re-convolution successful ----")
 
+    # ITERATIVE RE-CONVOLUTING and calculating chi2/stopping criteria for every iteration 
     diff1 = []
     diff2 = []
     result_old =[]
@@ -112,8 +123,8 @@ def main():
         reconvolved_next = np.array(reconvolved_next) / np.amax(reconvolved_next)
         if i > 0:
             # print( np.sum( (result_next - result_old)**2 ) )
-            diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))
-            diff2 = np.append(diff2, np.sqrt(np.sum( (reconvolved_old - matrix(data))**2) ))
+            diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))          #difference between iteration
+            diff2 = np.append(diff2, np.sqrt( np.sum( ((reconvolved_old - matrix(data))**2)    ))  )    #differnce between n-th iteration and raw Data
         result_old = result_next
         reconvolved_old = reconvolved_next
         # print(diff1)
@@ -133,7 +144,7 @@ def main():
         print("---- attempting to fit a shape to the data ----")
         post_process.fit_beam(result)
 
-    if args['preview'] == 1 or args['preview'] == 3:
+    if args['preview'] == 1 or args['preview'] == 3:    #2D-Plots:
         fig, ax = plt.subplots(2, 2)
         #
         ax[0, 0].title.set_text("raw data")
@@ -155,12 +166,15 @@ def main():
         #
         fig.tight_layout()
         plt.show()
-    if args['preview'] == 2 or args['preview'] == 3:
+
+    if args['preview'] == 2 or args['preview'] == 3:        #3D-Plots
         lower_x = 10    #lower x value in cm for plotting
         upper_x = 22    #upper x value in cm for plotting
         lower_y = 10    #lower y value in cm for plotting
         upper_y = 22    #upper y value in cm for plotting
         fig = plt.figure(figsize=plt.figaspect(0.5))
+        
+        #RAW DATA as contour plot
         ax = fig.add_subplot(2, 2, 1, projection='3d')
         ax.title.set_text("raw data")
         ax.view_init(elev=45, azim=-45, roll=0)
@@ -169,43 +183,64 @@ def main():
         ax.contourf(x, y, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/30, levels=300, cmap='rainbow', axlim_clip=True)
         ax.contourf(x, y, matrix(data), zdir='y', offset=upper_y*(np.max(data[0])+1)/30, levels=300, cmap='rainbow', axlim_clip=True)
         ax.set_zlim(0,1.1)
-        # ax.set_xlim(lower_x,upper_x)
-        # ax.set_ylim(lower_y,upper_y)
-        ax.set_xlim(lower_x*(np.max(data[0])+1)/30, upper_x*(np.max(data[0])+1)/30) #x-axis in lines
-        ax.set_ylim(lower_y*(np.max(data[0])+1)/30, upper_y*(np.max(data[0])+1)/30) #y-axis in lines 
+        ax.set_xlim(lower_x*(np.max(data[0])+1)/30, upper_x*(np.max(data[0])+1)/30) #x-axis in lines instead of cm
+        ax.set_ylim(lower_y*(np.max(data[0])+1)/30, upper_y*(np.max(data[0])+1)/30) #y-axis in lines instead of cm
         ax.set_xlabel("x / lines")
         ax.set_ylabel("y / lines")
         ax.set_zlabel("normalised intensity")
 
+        #UNFOLDED DATA as contour plot
         ax = fig.add_subplot(2, 2, 2, projection='3d')
         ax.title.set_text("unfolded data")
         ax.view_init(elev=45, azim=-45, roll=0)
-        # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
         x, y = np.meshgrid(np.linspace(0,30,np.max(data[0]) + 1), np.linspace(0,30,np.max(data[1]) + 1))#meshgrid with lines to 30cm
-        ax.contour(x, y, result, levels=100, axlim_clip=True)
-        ax.contourf(x, y, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
-        # ax.contourf(x, y, result, zdir='y', offset=args['lines'], levels=10, cmap='rainbow', axlim_clip=True)  #projection with number of scan lines
-        ax.contourf(x, y, result, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)               #projection with scaled to 30cm
-        # ax.set_xlim(0,30)
-        # ax.set_ylim(0,30)
+        # ax.contour(x, y, result, levels=100, axlim_clip=True)
+        # ax.contourf(x, y, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
+        # ax.contourf(x, y, result, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)               #projection with scaled to 30cm
+
+        #Test Data for 2D Super Gaus
+        true_params = [1, 16, 16, 2.0, 2.0, 2]  # A, x0, y0, sigma_x, sigma_y, n, offset
+        Z_true = super_gaussian_2d((x, y), *true_params).reshape(np.max(data[1]) + 1, np.max(data[1]) + 1)
+        ax.contour(x, y, Z_true, levels=300, axlim_clip=True)
+        ax.contourf(x, y, Z_true, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
+        ax.contourf(x, y, Z_true, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
+
+
+
+        # popt, pcov = curve_fit(
+        #                         super_gaussian_2d
+        #                         ,(x, y)
+        #                         ,result.ravel()
+        #                         ,p0=[1, 16, 16, 5, 5, 1]         # initial_guess
+        #                         ,maxfev=99999999
+        #                         ,bounds=(
+        #                                 [0, 0, 0, 0.1, 0.1, 1],  # lower bounds
+        #                                 [1, 30, 30, 500, 500, 10]    # upper bounds
+        #                                 )
+        #                         )
+        # # Extract fitted parameters
+        # A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit = popt
+        # print("Fitted parameters:")
+        # print(f"A={A_fit:.3f}, x0={x0_fit:.3f}, y0={y0_fit:.3f}, "
+        # f"sigma_x={sigma_x_fit:.3f}, sigma_y={sigma_y_fit:.3f}, "
+        # f"n={n_fit:.3f}, offset={offset_fit:.3f}")
+
         ax.set_zlim(0,1.1)
         ax.set_xlim(lower_x,upper_x)
         ax.set_ylim(lower_y,upper_y)
         ax.set_xlabel("x / cm")
         ax.set_ylabel("y / cm")
         ax.set_zlabel("normalised intensity")
+       
 
+        #RE-FOLDED DATA as contour plot
         ax = fig.add_subplot(2, 2, 3, projection='3d')
         ax.title.set_text("refolded data")
         ax.view_init(elev=45, azim=-45, roll=0)
-        # x, y = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1))            #meshgrid with number of lines
         x, y = np.meshgrid(np.linspace(0,30,np.max(data[0]) + 1), np.linspace(0,30,np.max(data[1]) + 1))#meshgrid with lines to 30cm
         ax.contour(x, y, reconvolved_norm, levels=300, axlim_clip=True)
         ax.contourf(x, y, reconvolved_norm, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
-        # ax.contourf(x, y, result, zdir='y', offset=args['lines'], levels=10, cmap='rainbow', axlim_clip=True)  #projection with number of scan lines
         ax.contourf(x, y, reconvolved_norm, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)               #projection with scaled to 30cm
-        # ax.set_xlim(0,30)
-        # ax.set_ylim(0,30)
         ax.set_zlim(0,1.1)
         ax.set_xlim(lower_x,upper_x)
         ax.set_ylim(lower_y,upper_y)
@@ -213,6 +248,7 @@ def main():
         ax.set_ylabel("y / cm")
         ax.set_zlabel("normalised intensity")
 
+        #STOPPING CRITERIA
         ax = fig.add_subplot(2, 2, 4)
         ax.title.set_text("change in unfolding")
         x = np.linspace(1,args["iterations"], num=args["iterations"])
