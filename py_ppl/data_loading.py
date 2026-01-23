@@ -248,21 +248,17 @@ def pairs(iterable):
             return None
 
 
-def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data_chan=2, n_gamma_co=0.0, dt_timing=0.0):
+def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data_chan=2, n_gamma_co=0.0):
     data = None
     if format_mesy:
         data = convert_mesy_file(filename)
     else:
         data = load_dataset(filename)
 
+    # fix timing overflows
     for i in range(1, len(data.time)):
         if data.time[i] < data.time[i - 1]:
             data.time[i:] += 2 ** 30
-
-    # 600us ?
-    time_const = 6.25e-8  # assumes 12.5ns
-    # timing_pulse_const_offset = int(0.05 / time_const)
-    timing_pulse_const_offset = int(dt_timing / time_const)
 
     # run n-gamma-discrimination
     sync_channel = timing_chan
@@ -270,23 +266,23 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     timing_pulses = data.subset(data.channel == sync_channel).time
     if not intended_lc or len(timing_pulses) != 2 * intended_lc:
         timing_pulses = fix_timing_pulses(timing_pulses)
-    # timing_pulses += timing_pulse_const_offset
     print(f"number of timing pulses is: {len(timing_pulses)}")
 
     data = data.subset(data.channel == data_channel)
+    data = data.subset(data.short < data.long) # measurement or transmission error check
     cutoff = n_gamma_co
     if cutoff == 0.:
         cutoff = analyze_run(data)
-    # print("Long Data is: " + str(len(data.long)))                               ##########
-    # data = data.subset(data.long > 15000)                                       ##########
-    # print("Long Data is: " + str(len(data.long)))                               ##########
-    neutron_hits = data.subset(data.short < data.long)
-    neutron_hits = neutron_hits.subset(neutron_hits.y() > cutoff)
-    # neutron_hits = neutron_hits.subset(neutron_hits.y() < 0.6)                  ##########
-    # print("Neutron Hits is: " + str(len(neutron_hits.long)))                    ##########
+    neutron_hits = data.subset(data.y() > cutoff)
+    gamma_hits = data.subset(data.y() <= cutoff)
 
+    return neutron_hits, timing_pulses, gamma_hits
+
+
+def hits_to_fluency(neutron_hits, timing_pulses, line_count, dt_timing=0.0):
+    time_const = 6.25e-8  # assumes 12.5ns
+    timing_pulse_const_offset = int(dt_timing / time_const)
     # convert hits to fluency
-    # time_const = 6.25e-8 # assumes 12.5ns
     times = neutron_hits.time
 
     # assosicate position values to data
