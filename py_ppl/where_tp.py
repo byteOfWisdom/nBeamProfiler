@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-raw_data = np.transpose(np.loadtxt("../lichtschranke_test.csv", delimiter=","))
+raw_data = np.transpose(np.loadtxt("../lichtschranke_test_2.csv", delimiter=","))
 tp = raw_data[2]
 for i in range(1, len(tp)):
     if tp[i] < tp[i - 1]:
