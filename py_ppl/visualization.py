@@ -146,10 +146,21 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     # Extract fitted parameters
     # A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit = popt
     A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit = popt
+    #calculate fit parameter error
+    perr = np.sqrt(np.diag(pcov))
+    A_error         = perr[0] 
+    x0_error        = perr[1] 
+    y0_error        = perr[2] 
+    sigma_x_error   = perr[3] 
+    sigma_y_error   = perr[4] 
+    n_error         = perr[5] 
+    offset_error    = perr[6] 
+    print("------------------------------------")
     print("Fitted parameters for Supergaussian:")
-    print(f"A={A_fit:.3f}, x0={x0_fit:.3f}, y0={y0_fit:.3f}, "
-    f"sigma_x={sigma_x_fit:.3f}, sigma_y={sigma_y_fit:.3f}, "
-    f"n={n_fit:.3f}, offset={offset_fit:.3f}")
+    print(f"A=({A_fit:.3f}+-{A_error:.3f}), x0=({x0_fit:.3f}+-{x0_error:.3f}), y0=({y0_fit:.3f}+-{y0_error:.3f}),\n"
+    f"sigma_x=({sigma_x_fit:.3f}+-{sigma_x_error:.3f}), sigma_y=({sigma_y_fit:.3f}+-{sigma_y_error:.3f}),\n"
+    f"n=({n_fit:.3f}+-{n_error:.3f}), offset=({offset_fit:.3f}+-{offset_error:.3f})")
+    print("------------------------------------")
 
     Z_true = super_gaussian_2d((x, y), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).reshape(np.max(data[1]) + 1, np.max(data[1]) + 1)
     ax.contour(x, y, Z_true, levels=300, axlim_clip=True)
