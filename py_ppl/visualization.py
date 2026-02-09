@@ -167,6 +167,30 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax.contourf(x, y, Z_true, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
     ax.contourf(x, y, Z_true, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
 
+    Z_clean = []
+    h_clean = []
+    for i in range(len(Z_true)):
+        for j in range(len(Z_true[0])):
+            if Z_true[i][j] > 0 and result[i][j]>0:
+                Z_clean += [Z_true[i][j]]
+                h_clean += [result[i][j]]
+
+    Z_clean = np.asarray(Z_clean).flatten()
+    h_clean = np.asarray(h_clean).flatten()
+    # print("Z lengths are:")
+    # print(len(Z_clean))
+    # print(len(h_clean))
+    # print(np.shape(Z_clean))
+    # print(np.shape(h_clean))
+    # print(len(popt))
+    
+
+    #calculate reduced chi2
+    chi2 = np.sum( (Z_clean - h_clean)**2 / np.sqrt(h_clean)**2 ) 
+    dofs = len(Z_clean) - len(popt)
+    print("Supergaussian chi2 is: ")
+    print(chi2/dofs)
+
     #labels in legend
     ax.plot([],[],' ', label=f'$\\sigma_x=$({sigma_x_fit:.3f}+-{sigma_x_error:.3f})cm' )
     ax.plot([],[],' ', label=f'$\\sigma_y=$({sigma_y_fit:.3f}+-{sigma_y_error:.3f})cm' )
