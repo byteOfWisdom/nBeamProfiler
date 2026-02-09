@@ -167,6 +167,14 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax.contourf(x, y, Z_true, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
     ax.contourf(x, y, Z_true, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
 
+    #labels in legend
+    ax.plot([],[],' ', label=f'$\\sigma_x=$({sigma_x_fit:.3f}+-{sigma_x_error:.3f})cm' )
+    ax.plot([],[],' ', label=f'$\\sigma_y=$({sigma_y_fit:.3f}+-{sigma_y_error:.3f})cm' )
+    ax.plot([],[],' ', label=f'n=({n_fit:.3f}+-{n_error:.3f})' )
+
+    # Set legend for ax1
+    ax.legend(loc='best',handlelength=0, handletextpad=0)
+
     ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x,upper_x)
     ax.set_ylim(lower_y,upper_y)
