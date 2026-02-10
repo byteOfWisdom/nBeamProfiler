@@ -183,18 +183,21 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     # print(np.shape(Z_clean))
     # print(np.shape(h_clean))
     # print(len(popt))
+    print(h_clean)
     
 
     #calculate reduced chi2
     chi2 = np.sum( (Z_clean - h_clean)**2 / np.sqrt(h_clean)**2 ) 
     dofs = len(Z_clean) - len(popt)
+    red_chi = chi2/dofs
     print("Supergaussian chi2 is: ")
-    print(chi2/dofs)
+    print(red_chi)
 
     #labels in legend
     ax.plot([],[],' ', label=f'$\\sigma_x=$({sigma_x_fit:.3f}+-{sigma_x_error:.3f})cm' )
     ax.plot([],[],' ', label=f'$\\sigma_y=$({sigma_y_fit:.3f}+-{sigma_y_error:.3f})cm' )
     ax.plot([],[],' ', label=f'n=({n_fit:.3f}+-{n_error:.3f})' )
+    ax.plot([],[],' ', label=f'$red. \\chi^2=${red_chi:.3f}' )
 
     # Set legend for ax1
     ax.legend(loc='best',handlelength=0, handletextpad=0)
