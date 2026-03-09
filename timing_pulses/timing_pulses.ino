@@ -8,7 +8,7 @@
 inline void rect_pulse(void) {
   SET_PIN_HIGH(B, 0);  
   SET_PIN_HIGH(B, 5);
-  delay(100);
+  delay(500);
   SET_PIN_LOW(B, 0);
   SET_PIN_LOW(B, 5);
 }
