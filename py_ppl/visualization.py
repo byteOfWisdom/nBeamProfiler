@@ -64,7 +64,7 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
                             ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]         # initial_guess
                             ,maxfev=99999999
                             ,bounds=(
-                                    [5, 5, 0, 0.1, 0.1, 1,0],  # lower bounds
+                                    [0, 5, 5, 0.1, 0.1, 1,0],  # lower bounds
                                     [1, scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf]    # upper bounds
                                     )
                             )
