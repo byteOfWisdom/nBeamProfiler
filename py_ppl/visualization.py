@@ -52,7 +52,7 @@ def plot_a(data, scint, long_data, short_data, result, args):
 #Plots for Preview 2
 def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     # some variables for automating stuff
-    scanning_length_x = 30 #cm
+    scanning_length_x = 29.9 #cm
     scanning_length_y = 30 #cm
     x_lines, y_lines = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1)) #meshgrid with number of lines
     x_units, y_units = np.meshgrid(np.linspace(0,scanning_length_x,np.max(data[0]) + 1), np.linspace(0,scanning_length_y,np.max(data[1]) + 1)) #meshgrid with lines converted to physical distance
