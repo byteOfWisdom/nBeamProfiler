@@ -61,10 +61,10 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
                             super_gaussian_2d
                             ,(x_units, y_units)
                             ,result.ravel()
-                            ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 15,0]         # initial_guess
+                            ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]         # initial_guess
                             ,maxfev=99999999
                             ,bounds=(
-                                    [0, 0, 0, 0.1, 0.1, 1,0],  # lower bounds
+                                    [10, 25, 0, 0.1, 0.1, 1,0],  # lower bounds
                                     [1, scanning_length_x, scanning_length_y, 100, 100, 100,np.inf]    # upper bounds
                                     )
                             )
