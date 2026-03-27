@@ -61,6 +61,8 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
                             super_gaussian_2d
                             ,(x_units, y_units)
                             ,result.ravel()
+                            # ,sigma = np.sqrt(result.ravel())
+                            # ,absolute_sigma = True
                             ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]         # initial_guess
                             ,maxfev=99999999
                             ,bounds=(
