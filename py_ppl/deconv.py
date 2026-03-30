@@ -13,3 +13,5 @@ from skimage import restoration
 
 def deconv_rl(measured, scint, iterations):
     return restoration.richardson_lucy(measured, scint, num_iter=iterations), "richardson lucy was used"
+    # return restoration.unsupervised_wiener(measured, scint), "unsupervised wiener was used"
+    # return restoration.wiener(measured, scint, 10), "wiener was used"
