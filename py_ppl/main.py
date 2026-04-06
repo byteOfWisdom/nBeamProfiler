@@ -90,21 +90,19 @@ def main():
         plt.show()
         return
 
+    #DECONVOLUTION
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'], args['scint_amp_mod'])
     print("---- running deconvolution ----")
     result, info = deconv.deconv_rl(matrix(data), scint, args["iterations"])
-    # print(result)
     print(info)
-    # print(data)
-    # print(out_file)
 
+    #RE-CONVOLUTION
     reconvolved = np.array(conv2(result, scint, mode='same'))
-    # print(np.amax(reconvolved))
     reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)
-    # print(np.amax(reconvolved_norm))
-    print("Re-convolution successful")
+    print("---- Re-convolution successful ----")
 
+    # ITERATIVE RE-CONVOLUTING and calculating chi2/stopping criteria for every iteration 
     diff1 = []
     diff2 = []
     result_old =[]
@@ -117,8 +115,8 @@ def main():
         reconvolved_next = np.array(reconvolved_next) / np.amax(reconvolved_next)
         if i > 0:
             # print( np.sum( (result_next - result_old)**2 ) )
-            diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))
-            diff2 = np.append(diff2, np.sqrt(np.sum( (reconvolved_old - matrix(data))**2) ))
+            diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))          #difference between iteration
+            diff2 = np.append(diff2, np.sqrt( np.sum( ((reconvolved_old - matrix(data))**2)    ))  )    #differnce between n-th iteration and raw Data
         result_old = result_next
         reconvolved_old = reconvolved_next
         # print(diff1)
