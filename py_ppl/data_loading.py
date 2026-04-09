@@ -15,7 +15,6 @@ def closest_time(times: np.ndarray, point: float) -> float:
 def debounce_pulses(timing_data, min_plausible = 250000):
     time_deltas = timing_data[1:] - timing_data[:-1]
     time_deltas = np.append(time_deltas, [timing_data[0]])
-    print(time_deltas)
     debounced = timing_data[time_deltas > min_plausible]
     print(f"debouncing removed {len(timing_data) - len(debounced)} pulses")
     return debounced
