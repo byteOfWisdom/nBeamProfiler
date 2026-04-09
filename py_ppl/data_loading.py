@@ -21,8 +21,13 @@ def debounce_pulses(timing_data, min_plausible = 250000):
     return debounced
 
 
-def fix_timing_pulses(timing_data):
+def fix_timing_pulses(timing_data, line_count):
     timing_data = debounce_pulses(timing_data)
+    if line_count and len(timing_data) > line_count * 2:
+        excess = len(timing_data) - line_count * 2
+        print(f"trimming {excess} excess timing pulses")
+        timing_data = timing_data[excess:]
+
     time_deltas = timing_data[1:] - timing_data[:-1]
     # time_deltas = np.sort(time_deltas)[:- int(len(time_deltas) * 0.3)] # filter out too long deltas due to missing events
     long_deltas = time_deltas[time_deltas > np.average(time_deltas)]
@@ -33,6 +38,9 @@ def fix_timing_pulses(timing_data):
     correct_long = np.average(long_deltas)
     print(correct_short)
     print(correct_long)
+
+    if line_count and len(timing_data) == 2 * line_count:
+        return timing_data
 
     i = 0
     next_long = True
@@ -263,7 +271,7 @@ def load_file(filename, format_mesy=False, intended_lc=None, timing_chan=3, data
     data_channel = data_chan
     timing_pulses = data.subset(data.channel == sync_channel).time
     if not intended_lc or len(timing_pulses) != 2 * intended_lc:
-        timing_pulses = fix_timing_pulses(timing_pulses)
+        timing_pulses = fix_timing_pulses(timing_pulses, intended_lc)
     print(f"number of timing pulses is: {len(timing_pulses)}")
 
     data = data.subset(data.channel == data_channel)
