@@ -1,15 +1,31 @@
-# from juliacall import Main as jl
-# import numpy as np
 from skimage import restoration
-
-# jl.seval("using DeconvOptim")
-
-
-# def deconv(measured, scint, iterations):
-#     res, meta = jl.deconvolution(measured, scint, regularizer=jl.TV(), iterations=iterations)
-#     res, meta = jl.deconvolution(measured, scint, iterations=iterations, loss=jl.Gauss())
-#     return np.array(res), meta
+import numpy as np
+from scipy.signal import convolve2d as conv2
+from matplotlib import pyplot as plt
 
 
 def deconv_rl(measured, scint, iterations):
-    return restoration.richardson_lucy(measured, scint, num_iter=iterations), "richardson lucy was used"
+    return restoration.richardson_lucy(measured, scint, num_iter=iterations)
+
+
+def residuals(measured, deconv_res, scint):
+    reconv = np.array(conv2(deconv_res, scint, mode="same"))
+    reconv_norm = np.sum(measured) / np.sum(reconv)
+    reconv = reconv_norm * reconv
+    return np.sum(np.abs(measured - reconv))
+
+
+def smart_deconv(measured, scint, iterations, close_to_zero=0.01):
+    iter_residuals = [residuals(measured, deconv_rl(measured, scint, n), scint) for n in range(iterations)]
+    delta = np.abs(np.gradient(iter_residuals))
+    min_deviation = iterations
+    for i in range(len(delta)):
+        if delta[i] < close_to_zero:
+            min_deviation = i
+            break
+
+    print(f"sensible cutoff was found to be {min_deviation} iterations")
+    plt.plot(iter_residuals)
+    plt.plot(np.abs(delta))
+    plt.show()
+    return deconv_rl(measured, scint, min_deviation), "smart deconv was used"

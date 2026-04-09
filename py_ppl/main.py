@@ -95,7 +95,7 @@ def main():
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'], args['scint_amp_mod'])
     print("---- running deconvolution ----")
-    result, info = deconv.deconv_rl(matrix(data), scint, args["iterations"])
+    result, info = deconv.smart_deconv(matrix(data), scint, args["iterations"])
     print(info)
 
     #RE-CONVOLUTION
