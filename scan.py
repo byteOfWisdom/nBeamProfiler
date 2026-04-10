@@ -2,6 +2,7 @@ from zaber_motion import Units
 from zaber_motion.ascii import Connection
 import RPi.GPIO as GPIO
 from sys import argv
+import time
 
 max_speed = 10.
 scan_speed = 2.5
@@ -56,6 +57,7 @@ if __name__ == "__main__":
         for x, y, s in scan_cmds:
             GPIO.output(sync_pin, GPIO.HIGH)
             # xaxis.move_absolute(x * 10., Units.LENGTH_MILLIMETRES, velocity = scan_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
+            print(f"move at time: {time.time()}")
             xaxis.move_absolute(x * 10., Units.LENGTH_MILLIMETRES)
             GPIO.output(sync_pin, GPIO.LOW)
             # yaxis.move_absolute(y * 10., Units.LENGTH_MILLIMETRES, velocity = max_speed, velocity_unit = Units.VELOCITY_CENTIMETRES_PER_SECOND)
