@@ -140,6 +140,7 @@ def main():
     if args['preview'] == 1 or args['preview'] == 3:
         visualization.plot_a(data, scint, long_data, short_data, result, args)
     if args['preview'] == 2 or args['preview'] == 3:
+        diff1, diff2 = [], []
         visualization.plot_b(data, result, reconvolved_norm, diff1, diff2, args)
 
 

@@ -12,10 +12,10 @@ def residuals(measured, deconv_res, scint):
     reconv = np.array(conv2(deconv_res, scint, mode="same"))
     reconv_norm = np.sum(measured) / np.sum(reconv)
     reconv = reconv_norm * reconv
-    return np.sum(np.abs(measured - reconv))
+    return np.sum(np.abs(measured - reconv) ** 2)
 
 
-def smart_deconv(measured, scint, iterations, close_to_zero=0.0001):
+def smart_deconv(measured, scint, iterations, close_to_zero=0.00001):
     iter_residuals = [residuals(measured, deconv_rl(measured, scint, n), scint) for n in range(iterations)]
     delta = np.abs(np.gradient(iter_residuals))
     delta *= 1 / max(delta)
