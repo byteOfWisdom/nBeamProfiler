@@ -82,6 +82,9 @@ def main():
     data = data_loading.hits_to_fluency(neutron_hits, timing_pulses, args['lines'], args['dt_timing'])
     long_data , short_data = data_loading.PSD_Heatmap(data_file)
     neutron_hits, time_edges = np.histogram(neutron_hits.time, args['lines'] ** 2)
+    if args['preview'] == 4:
+        plt.plot(0.5 * (time_edges[1:] + time_edges[:-1]), neutron_hits)
+        plt.show()
     # print(timing_pulses*6.25e-8)
     plt.figure(figsize=(16, 8), dpi=50)
     plt.plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
@@ -103,7 +106,7 @@ def main():
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'], args['scint_amp_mod'])
     print("---- running deconvolution ----")
-    result, info = deconv.deconv_rl(matrix(data), scint, args["iterations"])
+    result, info = deconv.smart_deconv(matrix(data), scint, args["iterations"])
     print(info)
 
     #RE-CONVOLUTION
@@ -111,28 +114,28 @@ def main():
     reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)
     print("---- Re-convolution successful ----")
 
-    # ITERATIVE RE-CONVOLUTING and calculating chi2/stopping criteria for every iteration 
-    diff1 = []
-    diff2 = []
-    result_old =[]
-    result_next =[]
-    reconvolved_old = []
-    reconvolved_next = []
-    for i in range(args["iterations"]+1):
-        result_next, info2 = deconv.deconv_rl(matrix(data), scint, i)
-        reconvolved_next = np.array(conv2(result_next, scint, mode='same'))
-        reconvolved_next = np.array(reconvolved_next) / np.amax(reconvolved_next)
-        if i > 0:
-            # print( np.sum( (result_next - result_old)**2 ) )
-            diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))          #difference between iteration
-            diff2 = np.append(diff2, np.sqrt( np.sum( ((reconvolved_old - matrix(data))**2)    ))  )    #differnce between n-th iteration and raw Data
-        result_old = result_next
-        reconvolved_old = reconvolved_next
-        # print(diff1)
-        # print(diff2)
-        # print(info2 + " for " + str(i) + " times")
-    min_index = np.argmin(diff2)
-    print("Minimum reached after " + str(min_index+1) + " iterations with " + str(diff2[min_index]))
+    # # ITERATIVE RE-CONVOLUTING and calculating chi2/stopping criteria for every iteration 
+    # diff1 = []
+    # diff2 = []
+    # result_old =[]
+    # result_next =[]
+    # reconvolved_old = []
+    # reconvolved_next = []
+    # for i in range(args["iterations"]+1):
+    #     result_next, info2 = deconv.deconv_rl(matrix(data), scint, i)
+    #     reconvolved_next = np.array(conv2(result_next, scint, mode='same'))
+    #     reconvolved_next = np.array(reconvolved_next) / np.amax(reconvolved_next)
+    #     if i > 0:
+    #         # print( np.sum( (result_next - result_old)**2 ) )
+    #         diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))          #difference between iteration
+    #         diff2 = np.append(diff2, np.sqrt( np.sum( ((reconvolved_old - matrix(data))**2)    ))  )    #differnce between n-th iteration and raw Data
+    #     result_old = result_next
+    #     reconvolved_old = reconvolved_next
+    #     # print(diff1)
+    #     # print(diff2)
+    #     # print(info2 + " for " + str(i) + " times")
+    # min_index = np.argmin(diff2)
+    # print("Minimum reached after " + str(min_index+1) + " iterations with " + str(diff2[min_index]))
 
 
     csv_data = to_csv(result)
@@ -148,6 +151,7 @@ def main():
     if args['preview'] == 1 or args['preview'] == 3:
         visualization.plot_a(data, scint, long_data, short_data, result, args)
     if args['preview'] == 2 or args['preview'] == 3:
+        diff1, diff2 = [], []
         visualization.plot_b(data, result, reconvolved_norm, diff1, diff2, args)
 
 
