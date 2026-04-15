@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 import matplotlib
 import numpy as np
 from scipy.optimize import curve_fit
-from sigfig import round         #import a easy way of scientific rounding
+from sigfig import round         #import an easy way of scientific rounding
 
 
 def matrix(arr):
@@ -29,13 +29,16 @@ def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n, offset):
 def plot_a(data, scint, long_data, short_data, result, args):
     fig, ax = plt.subplots(2, 2)
 
-    ax[0, 0].title.set_text("raw data")
+    # RAW DATA - Heatmap
+    ax[0, 0].title.set_text("Raw Data - Heatmap")
     ax[0, 0].imshow(matrix(data))
 
-    ax[0, 1].title.set_text("scint function")
+    # POINT SPREAD FUNCTION of the scintillator
+    ax[0, 1].title.set_text("Scintillator - Point Spread Function")
     ax[0, 1].imshow(scint)
 
-    ax[1, 0].title.set_text("PSD")
+    # PULSE SHAPE DISCRIMINATION plot
+    ax[1, 0].title.set_text("Pulse Shape Discrimination")
     ax[1, 0].hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
     ax[1, 0].axhline(y=args['n_gamma_cut'], color='black', linestyle='-')
     ax[1, 0].text(60000, args['n_gamma_cut']+0.02, 'neutrons', fontsize=12, color='black', ha='center', va='center')
@@ -43,7 +46,8 @@ def plot_a(data, scint, long_data, short_data, result, args):
     ax[1, 0].set_xlabel("long")
     ax[1, 0].set_ylabel("(long-short)/long")
 
-    ax[1, 1].title.set_text("unfolded data")
+    # DECONVOLVED DATA - Heatmap
+    ax[1, 1].title.set_text("Deconvolved Data - Heatmap")
     ax[1, 1].imshow(result)
 
     fig.tight_layout()
@@ -51,34 +55,39 @@ def plot_a(data, scint, long_data, short_data, result, args):
 
 #Plots for Preview 2
 def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
-    # some variables for automating stuff
+    # some variables for calculating stuff
     scanning_length_x = 30 #cm
     scanning_length_y = 30 #cm
-    x_lines, y_lines = np.meshgrid(np.arange(np.max(data[0]) + 1), np.arange(np.max(data[1]) + 1)) #meshgrid with number of lines
-    x_units, y_units = np.meshgrid(np.linspace(0,scanning_length_x,np.max(data[0]) + 1), np.linspace(0,scanning_length_y,np.max(data[1]) + 1)) #meshgrid with lines converted to physical distance
-    # print(data[0])
-    # print(x_lines)
-    # print(x_units[0])
-    # print(matrix(data).shape)
+
+    # create meshgrid with number of lines
+    x_lines, y_lines = np.meshgrid( np.arange(np.max(data[0]) + 1),
+                                    np.arange(np.max(data[1]) + 1))
     
+    # create meshgrid with number of lines lines converted to physical distances
+    x_units, y_units = np.meshgrid( np.linspace(0,scanning_length_x,np.max(data[0]) + 1), 
+                                    np.linspace(0,scanning_length_y,np.max(data[1]) + 1)) 
+
+    # fit supergaussian to data
     popt, pcov = curve_fit(
                             super_gaussian_2d
-                            ,(x_units, y_units)
+                            ,(x_units, y_units) # fit data to axis in physical units
                             ,result.ravel()
                             # ,sigma = np.sqrt(result.ravel())
                             # ,absolute_sigma = True
-                            ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]         # initial_guess
+                            ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]  # initial_guess for fitting parameters
                             ,maxfev=99999999
                             ,bounds=(
-                                    [0, 5, 5, 0.1, 0.1, 1,0],  # lower bounds
-                                    [1, scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf]    # upper bounds
+                                    [0, 5, 5, 0.1, 0.1, 1,0],  # lower bounds of fitting parameters
+                                    [1, scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf]    # upper bounds of fitting parameters
                                     )
                             )
     
-    # Extract fitted parameters
+    # Extract fitted parameters into variables for better reading
     A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit = popt
-    #calculate fit parameter error
+    # calculate fitted parameters-error
     A_error, x0_error, y0_error, sigma_x_error, sigma_y_error, n_error, offset_error = np.sqrt(np.diag(pcov))
+
+    # print fitted parameters to console
     print("------------------------------------")
     print("Fitted parameters for Supergaussian:")
     print(f"A=({A_fit:.3f}+-{A_error:.3f}), x0=({x0_fit:.3f}+-{x0_error:.3f}), y0=({y0_fit:.3f}+-{y0_error:.3f}),\n"
@@ -86,35 +95,16 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     f"n=({n_fit:.3f}+-{n_error:.3f}), offset=({offset_fit:.3f}+-{offset_error:.3f})")
     print("------------------------------------")
     
-    # use the fitted function to calculate z-values for plotting
+    # use the fitted parameters in supergaus function to calculate z-values for plotting
     Z_true = super_gaussian_2d((x_units, y_units), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).reshape(np.max(data[1]) + 1, np.max(data[1]) + 1)
 
-    # set axis boundaries after fitting for nice plotting
+    # set axis boundaries to 6 sigma after fitting for nice plotting
     lower_x = x0_fit-6*sigma_x_fit  #lower x value in cm for plotting
     upper_x = x0_fit+6*sigma_x_fit  #upper x value in cm for plotting
     lower_y = y0_fit-6*sigma_y_fit  #lower x value in cm for plotting
     upper_y = y0_fit+6*sigma_y_fit  #upper x value in cm for plotting
 
-    # clean data from zeros because we assume error=sqrt(value) and divide by this when doing chi2
-    # Z_clean = []
-    # h_clean = []
-    # for i in range(len(Z_true)):
-    #     for j in range(len(Z_true[0])):
-    #         if Z_true[i][j] > 0 and result[i][j]>0:
-    #             Z_clean += [Z_true[i][j]]
-    #             h_clean += [result[i][j]]
-
-    # Z_clean = np.asarray(Z_clean).flatten()
-    # h_clean = np.asarray(h_clean).flatten()
-    
-    # #calculate reduced chi2
-    # chi2 = np.sum( (Z_clean - h_clean)**2 / np.sqrt(h_clean)**2 ) 
-    # dofs = len(Z_clean) - len(popt)
-    # red_chi_SG = chi2/dofs
-    # print("Supergaussian chi2 is: ")
-    # print(red_chi_SG)
-
-    # clean data from zeros because we assume error=sqrt(data2) and divide by this when doing chi2
+    # clean data from zeros because we assume error=sqrt(data2) and divide by this when doing red. chi2
     def clean_and_chi2(data1,data2): #data2 = the one with error on its values
         data1_clean = []
         data2_clean = []
@@ -138,15 +128,13 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
 
     red_chi_RawReConv, chi2_RawReConv = clean_and_chi2(matrix(data),reconvolved_norm)
     print("Raw-ReConvolved chi2 is: " + str(round(chi2_RawReConv,2)))
-    # print(np.asarray(matrix(data)).shape)
-    # print(np.asarray(reconvolved_norm).shape)
 
 
     fig = plt.figure(figsize=plt.figaspect(0.5))
     
     #RAW DATA as contour plot
     ax = fig.add_subplot(2, 2, 1, projection='3d')
-    ax.title.set_text("raw data")
+    ax.title.set_text("Raw Data - Countour Plot")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_lines, y_lines, matrix(data), levels=100, axlim_clip=True)
     ax.contourf(x_lines, y_lines, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/scanning_length_x, levels=300, cmap='rainbow', axlim_clip=True)
@@ -158,9 +146,9 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax.set_ylabel("y / lines")
     ax.set_zlabel("normalised intensity")
 
-    #UNFOLDED DATA as contour plot
+    #DECONVOLVED DATA as contour plot
     ax = fig.add_subplot(2, 2, 2, projection='3d')
-    ax.title.set_text("unfolded data")
+    ax.title.set_text("Deconvolved Data - Contour Plot")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_units, y_units, result, levels=100, axlim_clip=True)
     ax.contourf(x_units, y_units, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
@@ -172,7 +160,7 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax.set_ylabel("y / cm")
     ax.set_zlabel("normalised intensity")
 
-    #RE-FOLDED DATA as contour plot
+    #RE-CONVOLCVED DATA as contour plot
     ax = fig.add_subplot(2, 2, 3, projection='3d')
     ax.title.set_text("refolded data")
     ax.view_init(elev=45, azim=-45, roll=0)
@@ -208,21 +196,5 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax.set_xlabel("x / cm")
     ax.set_ylabel("y / cm")
     ax.set_zlabel("normalised intensity")
-
-    # STOPPING CRITERIA - stupid for now, do later
-    # ax = fig.add_subplot(2, 2, 4)
-    # ax.title.set_text("change in unfolding")
-    # x = np.linspace(1,args["iterations"], num=args["iterations"])
-    # ax.plot(x,diff1, color='r', label='change between iterations')
-    # ax.plot(x,diff2, color='blue', label='diff between re-convoluted and raw data')
-    # # ax.set_xlim(0,30)
-    # # ax.set_ylim(0,30)
-    # # ax.set_xlim(lower_x,upper_x)
-    # # ax.set_ylim(lower_y,upper_y)
-    # ax.grid()
-    # ax.set_yscale('log')
-    # ax.set_xlabel("no. of Richardson Lucy iterations")
-    # ax.set_ylabel("sqrt(sum( (iter_n+1 - iter_n)**2 ) )")
-    # ax.legend(loc="best")
 
     plt.show()

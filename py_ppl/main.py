@@ -83,19 +83,17 @@ def main():
     long_data , short_data = data_loading.PSD_Heatmap(data_file)
     neutron_hits, time_edges = np.histogram(neutron_hits.time, args['lines'] ** 2)
     if args['preview'] == 4:
-        plt.plot(0.5 * (time_edges[1:] + time_edges[:-1]), neutron_hits)
+        # print(timing_pulses*6.25e-8)
+        plt.figure(figsize=(16, 8), dpi=50)
+        plt.plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
+        plt.vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
+        for xc in timing_pulses*6.25e-8:
+            plt.vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
+        plt.xlabel("time") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
+        plt.ylabel("neutron count")
+        plt.xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 ) #start plotting 10s before the first pulse and stop 10s after the last one
+        plt.legend(loc="best")
         plt.show()
-    # print(timing_pulses*6.25e-8)
-    plt.figure(figsize=(16, 8), dpi=50)
-    plt.plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
-    plt.vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
-    for xc in timing_pulses*6.25e-8:
-        plt.vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
-    plt.xlabel("time") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
-    plt.ylabel("neutron count")
-    plt.xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 )
-    plt.legend(loc="best")
-    plt.show()
 
     if args['no_deconv']:
         plt.imshow(matrix(data))
@@ -114,29 +112,6 @@ def main():
     reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)
     print("---- Re-convolution successful ----")
 
-    # # ITERATIVE RE-CONVOLUTING and calculating chi2/stopping criteria for every iteration 
-    # diff1 = []
-    # diff2 = []
-    # result_old =[]
-    # result_next =[]
-    # reconvolved_old = []
-    # reconvolved_next = []
-    # for i in range(args["iterations"]+1):
-    #     result_next, info2 = deconv.deconv_rl(matrix(data), scint, i)
-    #     reconvolved_next = np.array(conv2(result_next, scint, mode='same'))
-    #     reconvolved_next = np.array(reconvolved_next) / np.amax(reconvolved_next)
-    #     if i > 0:
-    #         # print( np.sum( (result_next - result_old)**2 ) )
-    #         diff1 = np.append(diff1, np.sqrt(np.sum( (result_next - result_old)**2) ))          #difference between iteration
-    #         diff2 = np.append(diff2, np.sqrt( np.sum( ((reconvolved_old - matrix(data))**2)    ))  )    #differnce between n-th iteration and raw Data
-    #     result_old = result_next
-    #     reconvolved_old = reconvolved_next
-    #     # print(diff1)
-    #     # print(diff2)
-    #     # print(info2 + " for " + str(i) + " times")
-    # min_index = np.argmin(diff2)
-    # print("Minimum reached after " + str(min_index+1) + " iterations with " + str(diff2[min_index]))
-
 
     csv_data = to_csv(result)
     if args['out_file'] != "":
@@ -148,9 +123,9 @@ def main():
         print("---- attempting to fit a shape to the data ----")
         post_process.fit_beam(result)
 
-    if args['preview'] == 1 or args['preview'] == 3:
+    if args['preview'] == 1 or args['preview'] == 3 or args['preview'] == 4:
         visualization.plot_a(data, scint, long_data, short_data, result, args)
-    if args['preview'] == 2 or args['preview'] == 3:
+    if args['preview'] == 2 or args['preview'] == 3 or args['preview'] == 4:
         diff1, diff2 = [], []
         visualization.plot_b(data, result, reconvolved_norm, diff1, diff2, args)
 
