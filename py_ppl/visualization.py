@@ -23,7 +23,8 @@ def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n, offset):
     n = abs(n)
     # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n)              #rectangular gaussian beam 
     exponent = -( ( (x - x0)/(2*sigma_x) )  **2   + ( (y - y0)/(2*sigma_y) )**2 ) ** n       #elliptical gaussian beam, thanks wikipedia :)
-    return (A * np.exp(exponent) + offset).ravel()
+    return (A * np.exp(exponent) + offset).ravel()  #with offset
+    # return (A * np.exp(exponent)).ravel()  #without offset
 
 #Plots for Preview 1
 def plot_a(data, scint, long_data, short_data, result, args):
@@ -90,10 +91,20 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     # print fitted parameters to console
     print("------------------------------------")
     print("Fitted parameters for Supergaussian:")
-    print(f"A=({A_fit:.3f}+-{A_error:.3f}), x0=({x0_fit:.3f}+-{x0_error:.3f}), y0=({y0_fit:.3f}+-{y0_error:.3f}),\n"
-    f"sigma_x=({sigma_x_fit:.3f}+-{sigma_x_error:.3f}), sigma_y=({sigma_y_fit:.3f}+-{sigma_y_error:.3f}),\n"
-    f"n=({n_fit:.3f}+-{n_error:.3f}), offset=({offset_fit:.3f}+-{offset_error:.3f})")
+    print(
+    'A=' + str(round(A_fit, A_error, sep='external_brackets'))+', ' + 'offset=' + str(round(offset_fit, offset_error, sep='external_brackets'))+', \n'
+    'x0=' + str(round(x0_fit, x0_error, sep='external_brackets'))+'cm, ' + 'y0=' + str(round(y0_fit, y0_error, sep='external_brackets'))+'cm, \n'
+    'sigma_x=' + str(round(sigma_x_fit, sigma_x_error, sep='external_brackets'))+'cm, ' + 'sigma_y=' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets'))+'cm, \n'
+    'n=' + str(round(n_fit, n_error, sep='external_brackets'))
+        )
     print("------------------------------------")
+    # print("Latex-Line for tables:")
+    # print(str(round(sigma_x_fit, sigma_x_error, sep='external_brackets')) + ' & ' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets')) + ' & ' +
+    #       str(round(n_fit, n_error, sep='external_brackets')) + ' & ' + str(round(A_fit, A_error, sep='external_brackets')) + ' & ' + 
+    #       str(round(x0_fit, x0_error, sep='external_brackets')) + ' & ' + str(round(y0_fit, y0_error, sep='external_brackets')) + ' & ' +
+    #       str(round(offset_fit, offset_error, sep='external_brackets')) + ' \\\\'
+    #      )
+    # print("------------------------------------")
     
     # use the fitted parameters in supergaus function to calculate z-values for plotting
     Z_true = super_gaussian_2d((x_units, y_units), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).reshape(np.max(data[1]) + 1, np.max(data[1]) + 1)
