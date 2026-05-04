@@ -84,16 +84,18 @@ def main():
     neutron_hits, time_edges = np.histogram(neutron_hits.time, args['lines'] ** 2)
     if args['preview'] == 4:
         # print(timing_pulses*6.25e-8)
-        plt.figure(figsize=(16, 8), dpi=50)
-        plt.plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
-        plt.vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
-        for xc in timing_pulses*6.25e-8:
-            plt.vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
-        plt.xlabel("time") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
-        plt.ylabel("neutron count")
-        plt.xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 ) #start plotting 10s before the first pulse and stop 10s after the last one
-        plt.legend(loc="best")
-        plt.show()
+        # plt.figure(figsize=(16, 8), dpi=50)
+        # plt.plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
+        # plt.vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
+        # for xc in timing_pulses*6.25e-8:
+        #     plt.vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
+        # plt.xlabel("time") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
+        # plt.ylabel("neutron count")
+        # plt.xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 ) #start plotting 10s before the first pulse and stop 10s after the last one
+        # plt.legend(loc="best")
+        # plt.show()
+
+        visualization.plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args)
 
     if args['no_deconv']:
         plt.imshow(matrix(data))
@@ -124,7 +126,7 @@ def main():
         post_process.fit_beam(result)
 
     if args['preview'] == 1 or args['preview'] == 3 or args['preview'] == 4:
-        visualization.plot_a(data, scint, long_data, short_data, result, args)
+        visualization.plot_a(data, scint, reconvolved_norm, result, args)
     if args['preview'] == 2 or args['preview'] == 3 or args['preview'] == 4:
         diff1, diff2 = [], []
         visualization.plot_b(data, result, reconvolved_norm, diff1, diff2, args)

@@ -26,8 +26,36 @@ def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n, offset):
     return (A * np.exp(exponent) + offset).ravel()  #with offset
     # return (A * np.exp(exponent)).ravel()  #without offset
 
+#Plot for Preview 4
+def plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args):
+    fig, ax = plt.subplots(2, 1)
+
+    # print(timing_pulses*6.25e-8)
+    # plt.figure(figsize=(16, 8), dpi=50)
+    ax[0].title.set_text("Neutron Counts during Scan")
+    ax[0].plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
+    ax[0].vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
+    for xc in timing_pulses*6.25e-8:
+        ax[0].vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
+    ax[0].set_xlabel("time") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
+    ax[0].set_ylabel("neutron count")
+    ax[0].set_xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 ) #start plotting 10s before the first pulse and stop 10s after the last one
+    ax[0].legend(loc="best")
+    # plt.show()
+
+    # PULSE SHAPE DISCRIMINATION plot
+    ax[1].title.set_text("Pulse Shape Discrimination")
+    ax[1].hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
+    ax[1].axhline(y=args['n_gamma_cut'], color='black', linestyle='-')
+    ax[1].text(60000, args['n_gamma_cut']+0.02, 'neutrons', fontsize=12, color='black', ha='center', va='center')
+    ax[1].text(60000, args['n_gamma_cut']-0.02, 'gammas', fontsize=12, color='black', ha='center', va='center')
+    ax[1].set_xlabel("long")
+    ax[1].set_ylabel("(long-short)/long")
+    fig.tight_layout()
+    plt.show()
+
 #Plots for Preview 1
-def plot_a(data, scint, long_data, short_data, result, args):
+def plot_a(data, scint, reconvolved_norm, result, args):
     fig, ax = plt.subplots(2, 2)
 
     # RAW DATA - Heatmap
@@ -39,13 +67,17 @@ def plot_a(data, scint, long_data, short_data, result, args):
     ax[0, 1].imshow(scint)
 
     # PULSE SHAPE DISCRIMINATION plot
-    ax[1, 0].title.set_text("Pulse Shape Discrimination")
-    ax[1, 0].hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
-    ax[1, 0].axhline(y=args['n_gamma_cut'], color='black', linestyle='-')
-    ax[1, 0].text(60000, args['n_gamma_cut']+0.02, 'neutrons', fontsize=12, color='black', ha='center', va='center')
-    ax[1, 0].text(60000, args['n_gamma_cut']-0.02, 'gammas', fontsize=12, color='black', ha='center', va='center')
-    ax[1, 0].set_xlabel("long")
-    ax[1, 0].set_ylabel("(long-short)/long")
+    # ax[1, 0].title.set_text("Pulse Shape Discrimination")
+    # ax[1, 0].hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
+    # ax[1, 0].axhline(y=args['n_gamma_cut'], color='black', linestyle='-')
+    # ax[1, 0].text(60000, args['n_gamma_cut']+0.02, 'neutrons', fontsize=12, color='black', ha='center', va='center')
+    # ax[1, 0].text(60000, args['n_gamma_cut']-0.02, 'gammas', fontsize=12, color='black', ha='center', va='center')
+    # ax[1, 0].set_xlabel("long")
+    # ax[1, 0].set_ylabel("(long-short)/long")
+
+    # Re-CONVOLVED DATA - Heatmap
+    ax[1, 0].title.set_text("Re-convolved Data - Heatmap")
+    ax[1, 0].imshow(reconvolved_norm)
 
     # DECONVOLVED DATA - Heatmap
     ax[1, 1].title.set_text("Deconvolved Data - Heatmap")
