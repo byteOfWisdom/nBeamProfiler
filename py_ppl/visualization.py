@@ -52,6 +52,8 @@ def plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args)
     ax[1].set_xlabel("long")
     ax[1].set_ylabel("(long-short)/long")
     fig.tight_layout()
+    # Save the plot as a PDF  
+    # plt.savefig("preview4.pdf", format="pdf") 
     plt.show()
 
 #Plots for Preview 1
@@ -84,6 +86,8 @@ def plot_a(data, scint, reconvolved_norm, result, args):
     ax[1, 1].imshow(result)
 
     fig.tight_layout()
+    # Save the plot as a PDF  
+    # plt.savefig("preview1.pdf", format="pdf") 
     plt.show()
 
 #Plots for Preview 2
@@ -240,4 +244,6 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax.set_ylabel("y / cm")
     ax.set_zlabel("normalised intensity")
 
+    # Save the plot as a PDF  
+    # plt.savefig("preview2.pdf", format="pdf") 
     plt.show()
