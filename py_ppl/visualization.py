@@ -260,7 +260,7 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax = fig.add_subplot(2,3,5)
     ax.set_title("Supergaussian in x-direction")
     # ax.contourf(x_units, Z_true, y_units, cmap='rainbow') #projection of the x-axis
-    ax.contourf(x_units, result, y_units, cmap='rainbow') #projection of the x-axis
+    ax.contourf(x_units, result, y_units, cmap='rainbow', levels=50) #projection of the x-axis
     x_plot_supergaus = np.linspace(x0_fit-6*sigma_x_fit, x0_fit+6*sigma_x_fit, 100000)
     ax.plot(x_plot_supergaus,super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), label="Fitted Beam Profile")
     # ax.plot(x_plot_supergaus,super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, 1.1955, 2.235, offset_fit), label="Simulated Beam Profile")
@@ -277,7 +277,7 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
         # print(indices)
         # print(super_gaussian_1d(x_plot_supergaus[indices[0]],A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit))
 
-        target_width = abs(x_plot_supergaus[indices[0]]) + abs(x_plot_supergaus[indices[-1]]) 
+        target_width = -x_plot_supergaus[indices[0]] + x_plot_supergaus[indices[-1]]
         plt.hlines(y=[target_percent*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit))],
                     xmin=x_plot_supergaus[indices[0]],
                     xmax=x_plot_supergaus[indices[-1]],
@@ -285,8 +285,8 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
                     linestyles='dashed', label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
     
     # draw_percent_lines(target_percent99)
-    # draw_percent_lines(target_percent90)
-    # draw_percent_lines(target_percent10)
+    draw_percent_lines(target_percent90)
+    draw_percent_lines(target_percent10)
     # draw_percent_lines(target_percent01)
 
     ax.grid()
@@ -299,7 +299,7 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax = fig.add_subplot(2,3,6)
     ax.set_title("Supergaussian in y-direction")
     # ax.contourf(y_units, Z_true, x_units, cmap='rainbow') #projection of the y-axis
-    ax.contourf(y_units, result, x_units, cmap='rainbow') #projection of the y-axis
+    ax.contourf(y_units, result, x_units, cmap='rainbow', levels=50) #projection of the y-axis
     y_plot_supergaus = np.linspace(y0_fit-6*sigma_y_fit, y0_fit+6*sigma_y_fit, 100)
     ax.plot(y_plot_supergaus,super_gaussian_1d(y_plot_supergaus,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit), label="Fitted Beam Profile")
     # plt.vlines(x=[-sigma_y_fit, +sigma_y_fit], ymin=0, ymax=super_gaussian_1d(sigma_y_fit,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit), colors='red', linestyles='dashed', label='Sigma width')
