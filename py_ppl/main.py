@@ -85,6 +85,17 @@ def main():
     if args['preview'] == 4:
         plt.plot(0.5 * (time_edges[1:] + time_edges[:-1]), neutron_hits)
         plt.show()
+    # print(timing_pulses*6.25e-8)
+    plt.figure(figsize=(16, 8), dpi=50)
+    plt.plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
+    plt.vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
+    for xc in timing_pulses*6.25e-8:
+        plt.vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
+    plt.xlabel("time") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
+    plt.ylabel("neutron count")
+    plt.xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 )
+    plt.legend(loc="best")
+    plt.show()
 
     if args['no_deconv']:
         plt.imshow(matrix(data))
