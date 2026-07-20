@@ -118,6 +118,7 @@ def main():
 
         ana = dataset_analysis(fname, elem)
         ana.fit()
+        ana.plot()
         data += [ana]
 
     lines, energies = make_calibration_data(data)
