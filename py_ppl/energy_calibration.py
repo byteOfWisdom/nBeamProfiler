@@ -3,7 +3,90 @@ import numpy as np
 import scipy as sp
 from matplotlib import pyplot as plt
 from sys import argv
-import std
+import inspect
+# import std
+import numba
+
+
+error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
+
+
+@numba.njit
+def linear(x, a, b):
+    return a * x + b
+
+
+def none(x):
+    return isinstance(x, type(None))
+
+
+def some(x):
+    return not none(x)
+
+
+def goodness_of_fit(data, fit):
+    rss = sum((data - fit) ** 2)
+    tss = sum((data - np.average(data)) ** 2)
+    return 1 - (rss / tss)
+
+
+def plt_errorbar(xval, yval, xerr=None, yerr=None, label=None, marker=None, alpha=None):
+    params = error_bar_def
+    params["alpha"] = alpha if alpha else 0.5
+    params["zorder"] = 5
+    if some(marker):
+        params["fmt"] = marker
+    if none(xerr):
+        params["fmt"] = marker if marker else "."
+        params["markersize"] = 5
+
+    plt.errorbar(xval, yval, xerr=xerr, yerr=yerr, label=label, **params)
+
+
+def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
+    if some(y_errors):
+        y_errors[y_errors == 0] = np.nan
+
+    argc = len(str(inspect.signature(func)).split()[1:])
+    if none(p0):
+        p0 = np.ones(argc)
+
+    func = np.vectorize(func)
+    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=False)
+    std_devs_cf = np.sqrt(np.diag(cov))
+    goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
+    return params_cf, (std_devs_cf, goodness_cf)
+
+
+def plt_finish(xlabel, ylabel, save_to=False):
+    plt.gcf().set_size_inches(16/1.75, 9/1.75)
+    plt.grid(which="major")
+    plt.grid(which="minor", linestyle=":", linewidth=0.5)
+    plt.gca().minorticks_on()
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend()
+    plt.tight_layout()
+    if save_to:
+        plt.savefig(save_to)
+    else:
+        plt.show()
+
+    plt.cla()
+
+
+def plt_func(f, params=None, label=None, xrange=None, alpha=None):
+    import numpy as np
+    xmin, xmax, _, _ = plt.axis()
+    if some(xrange) and some(xrange[0]):
+        xmin = xrange[0]
+    if some(xrange) and some(xrange[1]):
+        xmax = xrange[1]
+    x = np.linspace(xmin, xmax, 10000)
+    y = f(x) if none(params) else f(x, *params) 
+    alpha = alpha if alpha else 1
+    plt.plot(x, y, label=label, alpha=alpha, zorder=10)
+
 
 # all assumed values are in here for tuning in a single place
 class config:
@@ -50,7 +133,7 @@ def fit_edges(bin_centers, hist):
         p0 += [hist[guess], bin_centers[guess], 1000, 0, 1]
     start = np.where(hist == max(hist))[0][0]
     f = np.vectorize(make_multi_edge(len(x0_guesses)))
-    res, (err, rsq) = std.curve_fit(f, bin_centers[start:], hist[start:], p0=p0)
+    res, (err, rsq) = curve_fit(f, bin_centers[start:], hist[start:], p0=p0)
     return res, (err, rsq)
 
 
@@ -74,7 +157,7 @@ class dataset_analysis:
         print(self.n)
         plt.plot(self.bin_centers, self.hist)
         f = np.vectorize(make_multi_edge(self.n))
-        std.default.plt_func(f, self.res)
+        plt_func(f, self.res)
         plt.yscale("log")
         plt.show()
 
@@ -122,10 +205,10 @@ def main():
         data += [ana]
 
     lines, energies = make_calibration_data(data)
-    res, _ = std.curve_fit(std.linear, lines, energies)
-    std.default.plt_errorbar(lines, energies)
-    std.default.plt_func(std.linear, res)
-    std.default.plt_finish("Bin", "Energie / eV")
+    res, _ = curve_fit(linear, lines, energies)
+    plt_errorbar(lines, energies)
+    plt_func(linear, res)
+    plt_finish("Bin", "Energie / eV")
 
 
 if __name__ == "__main__":
