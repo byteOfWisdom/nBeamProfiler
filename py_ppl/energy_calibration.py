@@ -99,7 +99,9 @@ class config:
 
 
 gamma_line_db = {
-    "Na22": [511e3, 1200e3] 
+    "Na22": [511e3, 1274.537e3],
+    "Cs137":[661.657e3],
+    "AmBe": [4438e3]
 }
 
 
@@ -134,7 +136,7 @@ def fit_edges(bin_centers, hist):
         p0 += [hist[guess], bin_centers[guess], 1000, 0, 1]
     start = np.where(hist == max(hist))[0][0]
     f = np.vectorize(make_multi_edge(len(x0_guesses)))
-    res, (err, rsq) = curve_fit(f, bin_centers[start:], hist[start:], p0=p0)
+    res, (err, rsq) = curve_fit(f, bin_centers[start:], hist[start:], p0=p0, maxfev=9999999)
     return res, (err, rsq)
 
 
@@ -160,6 +162,7 @@ class dataset_analysis:
         # f = np.vectorize(make_multi_edge(self.n))
         # plt_func(f, self.res)
         plt.yscale("log")
+        plt.ylim(bottom=0.9)
         plt.show()
 
 
