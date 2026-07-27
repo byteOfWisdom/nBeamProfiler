@@ -191,13 +191,7 @@ def make_calibration_data(list_of_datasets):
 
 
 def main():
-    # call with: python energy_calibration.py [file] [isotope] [file] [isotope] ...
-
-    # fname = argv[1]
-    # ana = dataset_analysis(fname, "Na22")
-    # ana.fit()
-    # # ana.plot()
-    # print(ana.compton_edges)
+    # call with: python energy_calibration.py 
 
     url = "https://uni-bonn.sciebo.de/public.php/dav/files/qArdCtRpESZDtYk/?accept=zip"
     if len(argv) > 1:
