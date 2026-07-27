@@ -99,8 +99,8 @@ class config:
 
 
 gamma_line_db = {
-    "Na22": [511e3, 1274.537e3],
-    "Cs137":[661.657e3],
+    "Na": [511e3, 1274.537e3],
+    "Cs":[661.657e3],
     "AmBe": [4438e3]
 }
 
@@ -115,17 +115,19 @@ def make_multi_edge(n):
 def edge_guess(data, bins):
     data = np.log(data)
     data[data < 0] = 0
+    plt.plot(bins, data / max(data))
     data = sp.signal.medfilt(data, config.filter_len)
     data = np.convolve(data, config.smoothing_kernel, "same")
     diff = np.gradient(data, bins)
     diff *= -1
     diff[diff < 0] = 0
+    diff[bins < 2000] = 0
     diff = np.convolve(diff, config.smoothing_kernel, "same")
     peaks, _ = sp.signal.find_peaks(diff, width=config.width, prominence=config.prominence)
-    # print(f"initial guesses where placed at {bins[peaks]}")
-    # plt.plot(bins, diff)
-    # plt.scatter(bins[peaks], diff[peaks])
-    # plt.show()
+    print(f"initial guesses where placed at {bins[peaks]}")
+    plt.plot(bins, diff / max(diff))
+    plt.scatter(bins[peaks], diff[peaks])
+    plt.show()
     return peaks
 
 
@@ -156,11 +158,11 @@ class dataset_analysis:
             self.compton_edges += [self.res[5 * i + 1]]
 
     def plot(self):
-        # print(self.res)
-        # print(self.n)
+        print(self.res)
+        print(self.n)
         plt.plot(self.bin_centers, self.hist)
-        # f = np.vectorize(make_multi_edge(self.n))
-        # plt_func(f, self.res)
+        f = np.vectorize(make_multi_edge(self.n))
+        plt_func(f, self.res)
         plt.yscale("log")
         plt.ylim(bottom=0.9)
         plt.show()
@@ -178,6 +180,7 @@ def make_calibration_data(list_of_datasets):
     for ds in list_of_datasets:
         if ds.isotope not in gamma_line_db.keys():
             print("dataset without known isotope")
+            print(ds.isotope)
             continue
 
         for i in range(ds.n):
@@ -196,26 +199,33 @@ def main():
     # # ana.plot()
     # print(ana.compton_edges)
 
-    calibration_data = sciebo_fetch.fetch(argv[1])
+    url = "https://uni-bonn.sciebo.de/public.php/dav/files/qArdCtRpESZDtYk/?accept=zip"
+    if len(argv) > 1:
+        url = argv[1]
+    calibration_data = sciebo_fetch.fetch(url, "gamma_calib_data")
 
     data = []
     for fname in calibration_data.ls():
-        elem = "Na22"
+        elem = None
+        for element in gamma_line_db.keys():
+            if element in fname:
+                elem = element
+                break
 
         long, short, time, channel, _ = np.genfromtxt(calibration_data.np_loadable(fname), delimiter=",", unpack=True)
 
         ds = data_loading.dataset(short, long, time, channel)
 
         ana = dataset_analysis(ds, elem)
-        # ana.fit()
-        ana.plot()
+        ana.fit()
+        # ana.plot()
         data += [ana]
 
-    # lines, energies = make_calibration_data(data)
-    # res, _ = curve_fit(linear, lines, energies)
-    # plt_errorbar(lines, energies)
-    # plt_func(linear, res)
-    # plt_finish("Bin", "Energie / eV")
+    lines, energies = make_calibration_data(data)
+    res, _ = curve_fit(linear, lines, energies)
+    plt_errorbar(lines, energies)
+    plt_func(linear, res)
+    plt_finish("Bin", "Energie / eV")
 
 
 if __name__ == "__main__":
