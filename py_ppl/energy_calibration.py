@@ -6,6 +6,7 @@ from sys import argv
 import inspect
 # import std
 import numba
+import sciebo_fetch
 
 
 error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
@@ -138,8 +139,8 @@ def fit_edges(bin_centers, hist):
 
 
 class dataset_analysis:
-    def __init__(self, fname, isotope=""):
-        data = data_loading.load_dataset(fname)
+    def __init__(self, data, isotope=""):
+        # data = data_loading.load_dataset(fname)
         print(data.long)
         self.hist, bins = np.histogram(data.long, bins=config.long_bins)
         self.bin_centers = 0.5 * (bins[:-1] + bins[1:])
@@ -153,11 +154,11 @@ class dataset_analysis:
             self.compton_edges += [self.res[5 * i + 1]]
 
     def plot(self):
-        print(self.res)
-        print(self.n)
+        # print(self.res)
+        # print(self.n)
         plt.plot(self.bin_centers, self.hist)
-        f = np.vectorize(make_multi_edge(self.n))
-        plt_func(f, self.res)
+        # f = np.vectorize(make_multi_edge(self.n))
+        # plt_func(f, self.res)
         plt.yscale("log")
         plt.show()
 
@@ -192,23 +193,26 @@ def main():
     # # ana.plot()
     # print(ana.compton_edges)
 
-    i = 1
-    data = []
-    while i + 1 < len(argv):
-        fname = argv[i]
-        elem = argv[i + 1]
-        i += 2
+    calibration_data = sciebo_fetch.fetch(argv[1])
 
-        ana = dataset_analysis(fname, elem)
-        ana.fit()
+    data = []
+    for fname in calibration_data.ls():
+        elem = "Na22"
+
+        long, short, time, channel, _ = np.genfromtxt(calibration_data.np_loadable(fname), delimiter=",", unpack=True)
+
+        ds = data_loading.dataset(short, long, time, channel)
+
+        ana = dataset_analysis(ds, elem)
+        # ana.fit()
         ana.plot()
         data += [ana]
 
-    lines, energies = make_calibration_data(data)
-    res, _ = curve_fit(linear, lines, energies)
-    plt_errorbar(lines, energies)
-    plt_func(linear, res)
-    plt_finish("Bin", "Energie / eV")
+    # lines, energies = make_calibration_data(data)
+    # res, _ = curve_fit(linear, lines, energies)
+    # plt_errorbar(lines, energies)
+    # plt_func(linear, res)
+    # plt_finish("Bin", "Energie / eV")
 
 
 if __name__ == "__main__":

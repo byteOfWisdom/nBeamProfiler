@@ -1,0 +1,3 @@
+[submodule "py_ppl/sciebo_fetch"]
+	path = py_ppl/sciebo_fetch
+	url = https://github.com/byteOfWisdom/sciebo_fetch
