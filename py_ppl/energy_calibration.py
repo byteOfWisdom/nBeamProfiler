@@ -100,7 +100,7 @@ class config:
 gamma_line_db = {
     "Na22": [511e3, 1274.537e3],
     "Cs137":[661.657e3],
-    "AmBe": [44383]
+    "AmBe": [4438e3]
 }
 
 
