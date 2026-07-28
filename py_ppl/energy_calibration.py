@@ -92,10 +92,13 @@ def plt_func(f, params=None, label=None, xrange=None, alpha=None):
 # all assumed values are in here for tuning in a single place
 class config:
     filter_len = 25
-    smoothing_kernel = np.ones(25) / 2
+    smoothing_kernel = np.ones(25) / 25
+    roll_len = 30
     long_bins = 1500
     prominence = 0.1
     width = 10
+    min_height = 0.4
+    min_spacing = 100
 
 
 gamma_line_db = {
@@ -118,12 +121,13 @@ def edge_guess(data, bins):
     plt.plot(bins, data / max(data))
     data = sp.signal.medfilt(data, config.filter_len)
     data = np.convolve(data, config.smoothing_kernel, "same")
-    diff = np.gradient(data, bins)
+    diff = data - np.roll(data, config.roll_len)
     diff *= -1
     diff[diff < 0] = 0
     diff[bins < 2000] = 0
     diff = np.convolve(diff, config.smoothing_kernel, "same")
-    peaks, _ = sp.signal.find_peaks(diff, width=config.width, prominence=config.prominence)
+    diff = diff / max(diff)
+    peaks, info = sp.signal.find_peaks(diff, width=config.width, prominence=config.prominence, height=config.min_height, distance=config.min_spacing)
     print(f"initial guesses where placed at {bins[peaks]}")
     plt.plot(bins, diff / max(diff))
     plt.scatter(bins[peaks], diff[peaks])
@@ -131,14 +135,18 @@ def edge_guess(data, bins):
     return peaks
 
 
-def fit_edges(bin_centers, hist):
+def fit_edges(bin_centers, hist, n):
     x0_guesses = edge_guess(hist, bin_centers)
+    x0_guesses = x0_guesses[:n]
+    # return [None], ([None], None)
     p0 = []
     for guess in x0_guesses:
         p0 += [hist[guess], bin_centers[guess], 1000, 0, 1]
     start = np.where(hist == max(hist))[0][0]
-    f = np.vectorize(make_multi_edge(len(x0_guesses)))
-    res, (err, rsq) = curve_fit(f, bin_centers[start:], hist[start:], p0=p0, maxfev=9999999)
+    f = np.vectorize(make_multi_edge(n))
+    start = max(start, x0_guesses[0] - 100)
+    stop = x0_guesses[-1] + 100
+    res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999)
     return res, (err, rsq)
 
 
@@ -151,15 +159,15 @@ class dataset_analysis:
         self.isotope = isotope
 
     def fit(self):
-        self.res, (self.err, self.rsq) = fit_edges(self.bin_centers, self.hist)
-        self.n = len(self.res) // 5
+        self.n = len(gamma_line_db[self.isotope])
+        self.res, (self.err, self.rsq) = fit_edges(self.bin_centers, self.hist, self.n)
         self.compton_edges = []
         for i in range(self.n):
             self.compton_edges += [self.res[5 * i + 1]]
 
     def plot(self):
-        print(self.res)
-        print(self.n)
+        # print(self.res)
+        # print(self.n)
         plt.plot(self.bin_centers, self.hist)
         f = np.vectorize(make_multi_edge(self.n))
         plt_func(f, self.res)
@@ -212,7 +220,7 @@ def main():
 
         ana = dataset_analysis(ds, elem)
         ana.fit()
-        # ana.plot()
+        ana.plot()
         data += [ana]
 
     lines, energies = make_calibration_data(data)
