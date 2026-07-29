@@ -156,7 +156,7 @@ def fit_edges(bin_centers, hist, n, x0_guesses):
     # stop = np.argmin(np.abs(bin_centers - (x0_guesses[-1]))) + 100
     stop = np.argmin(np.abs(bin_centers - (max(x0_guesses) + 5e3)))
     res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999)
-    return res, (err, rsq)
+    return res, (err, rsq), (bin_centers[start], bin_centers[stop])
 
 
 class dataset_analysis:
@@ -171,21 +171,21 @@ class dataset_analysis:
         self.n = len(gamma_line_db[self.isotope])
         # x0_guesses = compton_edge(np.array(gamma_line_db[self.isotope])) * config.guess_factor
         x0_guesses = initial_guess_db[self.isotope]
-        self.res, (self.err, self.rsq) = fit_edges(self.bin_centers, self.hist, self.n, x0_guesses)
+        self.res, (self.err, self.rsq), self.xrange = fit_edges(self.bin_centers, self.hist, self.n, x0_guesses)
         self.compton_edges = []
+        self.edge_errors = []
         for i in range(self.n):
             self.compton_edges += [self.res[5 * i + 1]]
+            self.edge_errors += [self.err[5 * i + 1]]
 
     def plot(self):
-        # print(self.res)
-        # print(self.n)
         plt.plot(self.bin_centers, self.hist)
         f = np.vectorize(make_multi_edge(self.n))
-        plt_func(f, self.res)
+        plt_func(f, self.res, f"$R^2={round(self.rsq, 3)}$", self.xrange)
         plt.yscale("log")
         plt.title(self.isotope)
         plt.ylim(bottom=0.9)
-        plt.show()
+        plt_finish("Long", "Energie / eV")
 
 
 # everything is eV
@@ -197,6 +197,7 @@ def compton_edge(gamma_energy):
 def make_calibration_data(list_of_datasets):
     compton_energies = []
     compton_lines = []
+    line_errors = []
     for ds in list_of_datasets:
         if ds.isotope not in gamma_line_db.keys():
             print("dataset without known isotope")
@@ -205,9 +206,10 @@ def make_calibration_data(list_of_datasets):
 
         for i in range(ds.n):
             compton_lines += [ds.compton_edges[i]]
+            line_errors += [ds.edge_errors[i]]
             compton_energies += [compton_edge(gamma_line_db[ds.isotope][i])]
 
-    return compton_lines, compton_energies
+    return compton_lines, compton_energies, line_errors
 
 
 def main():
@@ -235,10 +237,10 @@ def main():
         ana.plot()
         data += [ana]
 
-    lines, energies = make_calibration_data(data)
-    res, _ = curve_fit(linear, lines, energies)
-    plt_errorbar(lines, energies)
-    plt_func(linear, res)
+    lines, energies, line_err = make_calibration_data(data)
+    res, (_, rsq) = curve_fit(linear, lines, energies)
+    plt_errorbar(lines, energies, yerr=line_err)
+    plt_func(linear, res, f"$R^2={round(rsq, 3)}$")
     plt_finish("Bin", "Energie / eV")
 
 
