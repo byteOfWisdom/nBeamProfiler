@@ -216,9 +216,9 @@ def main():
     # call with: python energy_calibration.py 
 
     url = "https://uni-bonn.sciebo.de/public.php/dav/files/qArdCtRpESZDtYk/?accept=zip"
-    if len(argv) > 1:
+    if len(argv) > 1 and argv[1] != "reload":
         url = argv[1]
-    calibration_data = sciebo_fetch.fetch(url, "gamma_calib_data")
+    calibration_data = sciebo_fetch.fetch(url, "gamma_calib_data", "reload" in argv)
 
     data = []
     for fname in calibration_data.ls():
