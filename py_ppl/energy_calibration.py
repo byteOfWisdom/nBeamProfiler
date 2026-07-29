@@ -99,12 +99,19 @@ class config:
     width = 10
     min_height = 0.4
     min_spacing = 100
+    guess_factor = 7000 / 1e6
 
 
 gamma_line_db = {
     "Na": [511e3, 1274.537e3],
     "Cs":[661.657e3],
     "AmBe": [4438e3]
+}
+
+initial_guess_db = {
+    "Na": [4.5e3, 15.0e3],
+    "Cs":[9e3],# 20e3],
+    "AmBe": [37e3]
 }
 
 
@@ -135,17 +142,19 @@ def edge_guess(data, bins):
     return peaks
 
 
-def fit_edges(bin_centers, hist, n):
-    x0_guesses = edge_guess(hist, bin_centers)
-    x0_guesses = x0_guesses[:n]
+def fit_edges(bin_centers, hist, n, x0_guesses):
+    # x0_guesses = edge_guess(hist, bin_centers)
+    # x0_guesses = x0_guesses[:n]
     # return [None], ([None], None)
     p0 = []
     for guess in x0_guesses:
-        p0 += [hist[guess], bin_centers[guess], 1000, 0, 1]
-    start = np.where(hist == max(hist))[0][0]
+        guess_bin = np.argmin(np.abs(bin_centers - guess))
+        p0 += [hist[guess_bin], bin_centers[guess_bin], 1000, 0, 1]
+    start = np.where(hist[1:] == max(hist[1:]))[0][0]
     f = np.vectorize(make_multi_edge(n))
-    start = max(start, x0_guesses[0] - 100)
-    stop = x0_guesses[-1] + 100
+    start = max(start, np.argmin(np.abs(bin_centers - (min(x0_guesses) - 5e3))))
+    # stop = np.argmin(np.abs(bin_centers - (x0_guesses[-1]))) + 100
+    stop = np.argmin(np.abs(bin_centers - (max(x0_guesses) + 5e3)))
     res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999)
     return res, (err, rsq)
 
@@ -160,7 +169,9 @@ class dataset_analysis:
 
     def fit(self):
         self.n = len(gamma_line_db[self.isotope])
-        self.res, (self.err, self.rsq) = fit_edges(self.bin_centers, self.hist, self.n)
+        # x0_guesses = compton_edge(np.array(gamma_line_db[self.isotope])) * config.guess_factor
+        x0_guesses = initial_guess_db[self.isotope]
+        self.res, (self.err, self.rsq) = fit_edges(self.bin_centers, self.hist, self.n, x0_guesses)
         self.compton_edges = []
         for i in range(self.n):
             self.compton_edges += [self.res[5 * i + 1]]
@@ -172,6 +183,7 @@ class dataset_analysis:
         f = np.vectorize(make_multi_edge(self.n))
         plt_func(f, self.res)
         plt.yscale("log")
+        plt.title(self.isotope)
         plt.ylim(bottom=0.9)
         plt.show()
 
