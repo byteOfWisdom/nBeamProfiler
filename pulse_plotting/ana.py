@@ -110,11 +110,16 @@ def parse_args():
 
 
 class analysis:
-    n_gamma_cutoff = 0.45 # TODO
-    t, u = None, None
-    plot_all = False
-
     def __init__(self, filename, start_file, stop_file, show_pbar=True):
+        # functions that can be overwritten for how to process data
+        self.retrigger_func = retrigger
+        self.psd_func = psd
+        self.normalizing_func = norm
+        self.trimming_func = trim
+
+        self.n_gamma_cutoff = 0.45 # TODO
+        self.t, self.u = None, None
+        self.plot_all = False
         self.start_file, self.stop_file = start_file, stop_file
         self.file_count = stop_file - start_file + 1
         self.ys = np.zeros(self.file_count)
@@ -142,8 +147,9 @@ class analysis:
         except ValueError:
             self.delimiter = ","
             t, u = np.genfromtxt(self.cache.np_loadable(self.cache.ls()[self.start_file]), delimiter=self.delimiter, unpack=True, skip_header=5)
-        t, u = retrigger(t, u)
-        t, u = trim(t, u)
+
+        t, u = self.retrigger_func.__call__(t, u)
+        t, u = self.trimming_func(t, u)
         self.avg_pulse_gamma = np.zeros(len(t))
         self.avg_pulse_neutron = np.zeros(len(t))
         self.refrence_timescale = t
@@ -158,15 +164,17 @@ class analysis:
         return self.current_filenum < self.file_count
 
     def pre_process(self):
-        reject, temp_t, temp_u = pre_process(self.t, self.u)
-        if reject:
+        self.u -= np.average(self.u[:50])
+        self.u = self.normalizing_func(self.u)
+        if pile_up_reject(self.t, self.u):
             self.rejected += 1
             return False
-        self.t, self.u = temp_t, temp_u
+        self.t, self.u = self.retrigger_func(self.t, self.u)
+        self.t, self.u = self.trimming_func(self.t, self.u)
         return True
 
     def psd(self):
-        self.y_current, self.long_current = psd(self.t, self.u)
+        self.y_current, self.long_current = self.psd_func(self.t, self.u)
         self.ys[self.current_filenum] = self.y_current
         self.long[self.current_filenum] = self.long_current
         if self.y_current > self.n_gamma_cutoff:
@@ -177,11 +185,11 @@ class analysis:
             self.avg_pulse_gamma += (self.u / min(self.u))
 
     def process(self):
-        if not self.pre_process():
-            return
-        self.psd()
-        if self.plot_all:
-            plt.plot(self.t, self.u)
+        # pre processing does pile up rejection, so only do the rest if that goes ok
+        if self.pre_process():
+            self.psd()
+            if self.plot_all:
+                plt.plot(self.t, self.u)
             
     def run(self):
         self.init_reader()
@@ -205,8 +213,8 @@ if __name__ == "__main__":
         print(ana.ys)
         plt.hist2d(np.abs(ana.long[ana.ys != 0]), ana.ys[ana.ys != 0], (75, 75), range=[[0, 4e-8], [0.2, 0.75]])
     elif only_avg:
-        n_time, n_amp = retrigger(ana.refrence_timescale, ana.avg_pulse_neutron / ana.neutron_count)
-        gamma_time, gamma_amp = retrigger(ana.refrence_timescale, ana.avg_pulse_gamma / ana.gamma_count)
+        n_time, n_amp = ana.refrence_timescale, ana.avg_pulse_neutron / ana.neutron_count
+        gamma_time, gamma_amp = ana.refrence_timescale, ana.avg_pulse_gamma / ana.gamma_count
         n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp), 5e-9, n_time[np.argmax(n_amp)], 1e-9])
         gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp), 5e-9, gamma_time[np.argmax(gamma_amp)], 1e-9])
         print(n_res)
