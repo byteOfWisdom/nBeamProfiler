@@ -89,6 +89,15 @@ def psd(time, voltage):
     return y, long_value
 
 
+def baseline_restore(voltage):
+    return voltage - np.average(voltage[:50])
+
+
+def linear_baseline(voltage):
+    xs = np.linspace(0, 1, len(voltage))
+    ug = np.interp(xs, [0, 1], [np.average(voltage[:50]), np.average(voltage[-50:])])
+    return voltage - ug
+
 def pre_process(time, voltage):
     voltage -= np.average(voltage[:50])
     voltage = norm(voltage)
@@ -116,6 +125,7 @@ class analysis:
         self.psd_func = psd
         self.normalizing_func = norm
         self.trimming_func = trim
+        self.baseline_func = baseline_restore
 
         self.n_gamma_cutoff = 0.45 # TODO
         self.t, self.u = None, None
@@ -164,7 +174,7 @@ class analysis:
         return self.current_filenum < self.file_count
 
     def pre_process(self):
-        self.u -= np.average(self.u[:50])
+        self.u = self.baseline_func(self.u)
         self.u = self.normalizing_func(self.u)
         if pile_up_reject(self.t, self.u):
             self.rejected += 1
@@ -202,6 +212,7 @@ if __name__ == "__main__":
     filename = argv[3]
     start_file, stop_file = int(argv[1]), int(argv[2])
     ana = analysis(filename, start_file, stop_file)
+    ana.baseline_func = linear_baseline
     ana.plot_all = not (plot_hist or only_avg)
     ana.run()
 
