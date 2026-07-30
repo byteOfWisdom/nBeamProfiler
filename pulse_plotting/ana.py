@@ -97,16 +97,16 @@ if __name__ == "__main__":
     if len(argv) > 4 and argv[4] == "avg":
         only_avg = True
 
-    ys = np.zeros(int(argv[2]) - int(argv[1]) + 1)
-    long = np.zeros(int(argv[2]) - int(argv[1]) + 1)
+    start_file, stop_file = int(argv[1]), int(argv[2])
+    file_count = start_file - stop_file + 1
+    ys = np.zeros(file_count)
+    long = np.zeros(file_count)
     print(f"loading {len(ys)} files")
     rejected = 0
     n_gamma_cutoff = 0.45 # TODO
-    start_file, stop_file = int(argv[1]), int(argv[2])
     progress_bar = pbar(stop_file - start_file, "", 40)
     cache = sciebo_fetch.open(argv[3])
-    # temp = np.transpose(np.loadtxt(path_n(start_file), delimiter= "\t" if sampleset == 1 else ",", skiprows=5))
-    # t, u = temp[0], temp[1]
+
     delim = "\t"
     t, u = None, None
     try:
@@ -119,14 +119,14 @@ if __name__ == "__main__":
     avg_pulse_gamma = np.zeros(len(t))
     avg_pulse_neutron = np.zeros(len(t))
     refrence_timescale = t
+
+
     gamma_count, neutron_count = 0, 0
     i = -1
     for fname in cache.ls()[start_file:stop_file]:
         i += 1
         progress_bar.next()
-        # fname = path_n(i)
-        # data = np.transpose(np.loadtxt(fname, delimiter= "\t" if sampleset == 1 else ",", skiprows=5))
-        # t, u = data[0], data[1]
+
         t, u = np.genfromtxt(cache.np_loadable(fname), delimiter=delim, unpack=True, skip_header=5)
         u -= np.average(u[:50])
         u = norm(u)
