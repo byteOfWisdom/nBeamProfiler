@@ -229,14 +229,34 @@ if __name__ == "__main__":
         n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp), 5e-9, n_time[np.argmax(n_amp)], 1e-9])
         gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp), 5e-9, gamma_time[np.argmax(gamma_amp)], 1e-9])
         print(n_res)
-        plt.plot(n_time, n_amp, color='b', label="average $n$-pulse")
-        plt.plot(gamma_time, gamma_amp, color='r', label="average $\\gamma$-pulse")
+        plt.plot(n_time*1e9+3, n_amp/max(n_amp), color='b', label="average $n$-pulse")
+        plt.plot(gamma_time*1e9+3, gamma_amp/max(gamma_amp), color='r', label="average $\\gamma$-pulse")
+
+        plt.xlim(-16, 185)
+        span = abs(plt.xlim()[0]) + abs(plt.xlim()[1])
+        print(span)
+        plt.axvline(x=0, color='black', linestyle='--', linewidth=1)#vline for start
+
+        plt.axhline(y=1.05, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 11.5)/span, linewidth=1, color='black')#hline from start to short
+        plt.text(6, 1.05, 'short', fontsize=10, va='center', ha='center', backgroundcolor='w')
+
+        plt.axhline(y=1.15, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 179)/span, linewidth=1, color='black')#hline from start to long
+        plt.text(90, 1.15, 'long\ntotal', fontsize=10, va='center', ha='center', backgroundcolor='w')
+
+        plt.axhline(y=1.05, xmin=(abs(plt.xlim()[0]) + 13.5)/span, xmax=(abs(plt.xlim()[0]) + 179)/span, linewidth=1, color='black')#hline from short to long
+        plt.text(85, 1.05, 'tail', fontsize=10, va='center', ha='center', backgroundcolor='w')
+        
+        plt.axvline(x=12.5, color='black', linestyle='--', linewidth=1)#vline for short
+        plt.axvline(x=180, color='black', linestyle='--', linewidth=1)#vline for long
+        
+
         # plt.plot(n_time, pulse_function(n_time, *n_res), label="neutron fit")
         # plt.plot(gamma_time, pulse_function(gamma_time, *gamma_res), label="gamma fit")
-        plt.legend(loc='upper right')
+        plt.legend(loc='center right')
         plt.xlabel('time / ns')
-        plt.ylabel('pulse height / arb. unit')
+        plt.ylabel('normalized pulse height / arb. unit')
         plt.grid()
+        plt.ylim(-0.05, 1.2)
     else:
         # plt.yscale("log")
         _, _, y1, y2 = plt.axis()
