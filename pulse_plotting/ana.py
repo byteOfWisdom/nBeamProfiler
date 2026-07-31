@@ -6,6 +6,7 @@ import scipy as sp
 from progress_print import pbar
 import inspect
 import sciebo_fetch
+import numba
 
 
 short_integration =  12.5e-9 * 1
@@ -44,11 +45,31 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
     return params_cf, (std_devs_cf, goodness_cf)
 
 
-def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma):
-    dt = t - t0
-    exp1 = np.exp(-sigma * dt) - np.exp(-tau_0 * dt)
-    exp2 = np.exp(-sigma * dt) - np.exp(-tau_1 * dt)
-    return a * exp1 + b * exp2
+# @np.vectorize
+@numba.njit
+def mod_gaussian(t, t_r, sigma, tau):
+    dt = t - t_r
+    # mask = np.heaviside(2 * (sigma ** 2) + dt * tau, 0)
+    mask = 2 * (sigma ** 2) + dt * tau > 0
+    if mask:
+        return np.exp(- dt ** 2 / (2 * (sigma ** 2) + tau * dt))
+    else:
+        return 0
+
+# @np.vectorize
+@numba.njit
+def f_egh(t, H, tau, t_r, sigma):
+    # dt = t - t_r
+    # mask = np.heaviside(2 * (sigma ** 2) + dt * tau, 0)
+    f_0 = mod_gaussian(t, t_r, sigma, tau)
+    # f_0[mask == 0] = 0
+    return H * f_0
+
+
+@np.vectorize
+@numba.njit
+def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma_0, sigma_1):
+    return f_egh(t, a, tau_0, t0, sigma_0) + f_egh(t, b, tau_1, t0, sigma_1)
 
 
 def pile_up_reject(time, voltage):
@@ -66,6 +87,7 @@ def retrigger(time, voltage):
 
 
 def retrigger_max(time, voltage):
+    # set the triggering point to a constant offset before the maximum occurs
     dt = time[np.argmax(np.abs(voltage))] - 6.75e-9
     return time - dt, voltage
 
@@ -230,14 +252,20 @@ if __name__ == "__main__":
     elif only_avg:
         n_time, n_amp = ana.refrence_timescale, ana.avg_pulse_neutron / ana.neutron_count
         gamma_time, gamma_amp = ana.refrence_timescale, ana.avg_pulse_gamma / ana.gamma_count
-        n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp) / 2, max(n_amp) / 2, 5e-9, 10e-9, n_time[np.argmax(n_amp)], 10e-9])
-        gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp) / 2, max(gamma_amp) / 2, 5e-9, 10e-9, gamma_time[np.argmax(gamma_amp)], 10e-9])
+
+        n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp) / 2, max(n_amp) / 2, 5e-9, 10e-9, n_time[np.argmax(n_amp)], 1e-9, 1e-9])
+        gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp) / 2, max(gamma_amp) / 2, 5e-9, 10e-9, gamma_time[np.argmax(gamma_amp)], 1e-9, 1e-9])
+
         print(n_res)
         print(gamma_res)
-        plt.plot(gamma_time, gamma_amp, label="$\\gamma$")
-        plt.plot(n_time, n_amp,  label="$n$")
+        plt.yscale("log")
+        plt.plot(gamma_time, gamma_amp, label="$\\gamma$ average")
+        plt.plot(n_time, n_amp,  label="neutron average")
         plt.plot(n_time, pulse_function(n_time, *n_res), label="neutron fit")
-        plt.plot(gamma_time, pulse_function(gamma_time, *gamma_res), label="neutron fit")
+        plt.plot(gamma_time, pulse_function(gamma_time, *gamma_res), label="$\\gamma$ fit")
+        plt.ylim([1e-3, 1])
+        plt.legend()
+        plt.grid()
     else:
         # plt.yscale("log")
         _, _, y1, y2 = plt.axis()
