@@ -44,14 +44,11 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
     return params_cf, (std_devs_cf, goodness_cf)
 
 
-def pulse_function(t, amplitude, tau, t0,  sigma):
+def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma):
     dt = t - t0
-    # b = ((dt / sigma) - (sigma / tau)) / np.sqrt(2)
-    b = (tau * dt - sigma**2) / (np.sqrt(2) * sigma * tau)
-    # return b
-    # d = (sigma ** 2 + tau * t0) / (np.sqrt(2) * sigma * tau)
-    c = amplitude * (1 + sp.special.erf(b)) / (2 * tau)
-    return c * np.exp(((sigma**2) - (2 * tau * dt)) / (2 * tau ** 2))
+    exp1 = np.exp(-sigma * dt) - np.exp(-tau_0 * dt)
+    exp2 = np.exp(-sigma * dt) - np.exp(-tau_1 * dt)
+    return a * exp1 + b * exp2
 
 
 def pile_up_reject(time, voltage):
@@ -65,6 +62,11 @@ def pile_up_reject(time, voltage):
 
 def retrigger(time, voltage):
     dt = time[(-1) * np.convolve(voltage, np.ones(10) / 10, "same") > trigger_level][0]
+    return time - dt, voltage
+
+
+def retrigger_max(time, voltage):
+    dt = time[np.argmax(np.abs(voltage))] - 6.75e-9
     return time - dt, voltage
 
 
@@ -97,6 +99,7 @@ def linear_baseline(voltage):
     xs = np.linspace(0, 1, len(voltage))
     ug = np.interp(xs, [0, 1], [np.average(voltage[:50]), np.average(voltage[-50:])])
     return voltage - ug
+
 
 def pre_process(time, voltage):
     voltage -= np.average(voltage[:50])
@@ -213,6 +216,7 @@ if __name__ == "__main__":
     start_file, stop_file = int(argv[1]), int(argv[2])
     ana = analysis(filename, start_file, stop_file)
     ana.baseline_func = linear_baseline
+    ana.retrigger_func = retrigger_max
     ana.plot_all = not (plot_hist or only_avg)
     ana.run()
 
@@ -226,9 +230,10 @@ if __name__ == "__main__":
     elif only_avg:
         n_time, n_amp = ana.refrence_timescale, ana.avg_pulse_neutron / ana.neutron_count
         gamma_time, gamma_amp = ana.refrence_timescale, ana.avg_pulse_gamma / ana.gamma_count
-        n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp), 5e-9, n_time[np.argmax(n_amp)], 1e-9])
-        gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp), 5e-9, gamma_time[np.argmax(gamma_amp)], 1e-9])
+        n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp) / 2, max(n_amp) / 2, 5e-9, 10e-9, n_time[np.argmax(n_amp)], 10e-9])
+        gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp) / 2, max(gamma_amp) / 2, 5e-9, 10e-9, gamma_time[np.argmax(gamma_amp)], 10e-9])
         print(n_res)
+        print(gamma_res)
         plt.plot(gamma_time, gamma_amp, label="$\\gamma$")
         plt.plot(n_time, n_amp,  label="$n$")
         plt.plot(n_time, pulse_function(n_time, *n_res), label="neutron fit")
