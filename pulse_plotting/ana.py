@@ -7,7 +7,7 @@ from progress_print import pbar
 import inspect
 import sciebo_fetch
 import numba
-
+import cffi
 
 short_integration =  12.5e-9 * 1
 # short_integration =  6.75e-9
@@ -45,31 +45,31 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
     return params_cf, (std_devs_cf, goodness_cf)
 
 
-# @np.vectorize
-@numba.njit
-def mod_gaussian(t, t_r, sigma, tau):
-    dt = t - t_r
-    # mask = np.heaviside(2 * (sigma ** 2) + dt * tau, 0)
-    mask = 2 * (sigma ** 2) + dt * tau > 0
-    if mask:
-        return np.exp(- dt ** 2 / (2 * (sigma ** 2) + tau * dt))
-    else:
-        return 0
+# # @np.vectorize
+# @numba.njit
+# def mod_gaussian(t, t_r, sigma, tau):
+#     dt = t - t_r
+#     # mask = np.heaviside(2 * (sigma ** 2) + dt * tau, 0)
+#     mask = 2 * (sigma ** 2) + dt * tau > 0
+#     if mask:
+#         return np.exp(- dt ** 2 / (2 * (sigma ** 2) + tau * dt))
+#     else:
+#         return 0
 
 # @np.vectorize
-@numba.njit
-def f_egh(t, H, tau, t_r, sigma):
-    # dt = t - t_r
-    # mask = np.heaviside(2 * (sigma ** 2) + dt * tau, 0)
-    f_0 = mod_gaussian(t, t_r, sigma, tau)
-    # f_0[mask == 0] = 0
-    return H * f_0
+# @numba.njit
+# def f_egh(t, H, tau, t_r, sigma):
+#     # dt = t - t_r
+#     # mask = np.heaviside(2 * (sigma ** 2) + dt * tau, 0)
+#     f_0 = mod_gaussian(t, t_r, sigma, tau)
+#     # f_0[mask == 0] = 0
+#     return H * f_0
 
 
-@np.vectorize
-@numba.njit
-def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma_0, sigma_1):
-    return f_egh(t, a, tau_0, t0, sigma_0) + f_egh(t, b, tau_1, t0, sigma_1)
+# @np.vectorize
+# # @numba.njit
+# def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma_0, sigma_1):
+#     return f_egh(t, a, tau_0, t0, sigma_0) + f_egh(t, b, tau_1, t0, sigma_1)
 
 
 def pile_up_reject(time, voltage):
@@ -231,6 +231,9 @@ class analysis:
         while(self.load_next()):
             self.process()
 
+    def fit_all(self):
+        pass
+
 
 if __name__ == "__main__":
     plot_hist, only_avg = parse_args()
@@ -253,8 +256,11 @@ if __name__ == "__main__":
         n_time, n_amp = ana.refrence_timescale, ana.avg_pulse_neutron / ana.neutron_count
         gamma_time, gamma_amp = ana.refrence_timescale, ana.avg_pulse_gamma / ana.gamma_count
 
+        print("starting first fit")
         n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp) / 2, max(n_amp) / 2, 5e-9, 10e-9, n_time[np.argmax(n_amp)], 1e-9, 1e-9])
+        print("starting second fit")
         gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp) / 2, max(gamma_amp) / 2, 5e-9, 10e-9, gamma_time[np.argmax(gamma_amp)], 1e-9, 1e-9])
+        print("done")
 
         print(n_res)
         print(gamma_res)
