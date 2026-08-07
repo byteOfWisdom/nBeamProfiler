@@ -6,8 +6,8 @@ import scipy as sp
 from progress_print import pbar
 import inspect
 import sciebo_fetch
-import numba
-import cffi
+# import numba
+import _pulse_func
 
 short_integration =  12.5e-9 * 1
 # short_integration =  6.75e-9
@@ -38,7 +38,7 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
     if none(p0):
         p0 = np.ones(argc)
 
-    func = np.vectorize(func)
+    # func = np.vectorize(func)
     params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=False)
     std_devs_cf = np.sqrt(np.diag(cov))
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
@@ -70,6 +70,15 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
 # # @numba.njit
 # def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma_0, sigma_1):
 #     return f_egh(t, a, tau_0, t0, sigma_0) + f_egh(t, b, tau_1, t0, sigma_1)
+# pulse_function = np.vectorize(_pulse_func.lib.pulse_func)
+
+def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma_0, sigma_1):
+    out = np.zeros_like(t)
+    n = len(t)
+    in_buff = _pulse_func.ffi.from_buffer("double*", t.data)
+    out_buff = _pulse_func.ffi.from_buffer("double*", out.data)
+    _pulse_func.lib.v_pulse_func(n, in_buff, out_buff, a, b, tau_0, tau_1, t0,  sigma_0, sigma_1)
+    return out
 
 
 def pile_up_reject(time, voltage):
@@ -255,7 +264,8 @@ if __name__ == "__main__":
     elif only_avg:
         n_time, n_amp = ana.refrence_timescale, ana.avg_pulse_neutron / ana.neutron_count
         gamma_time, gamma_amp = ana.refrence_timescale, ana.avg_pulse_gamma / ana.gamma_count
-
+        p0_neutron = [7.53627047e-01, 1.27218224e-01, 3.57085030e-09, 4.62262017e-08, 5.77039984e-09, 3.69800093e-09, 1.32338178e-08]
+        p0_gamma = [7.78896078e-01, 1.04087500e-01, 3.15483244e-09, 3.22564887e-08, 5.95810029e-09, 3.52731664e-09, 1.13952767e-08]
         print("starting first fit")
         n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp) / 2, max(n_amp) / 2, 5e-9, 10e-9, n_time[np.argmax(n_amp)], 1e-9, 1e-9])
         print("starting second fit")
