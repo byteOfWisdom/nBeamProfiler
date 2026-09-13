@@ -1,11 +1,13 @@
 #!python3
 from matplotlib import pyplot as plt
+import matplotlib
 from sys import argv
 import numpy as np
 import scipy as sp
 from progress_print import pbar
 import inspect
 import sciebo_fetch
+import os
 
 
 short_integration =  12.5e-9 * 1
@@ -207,6 +209,47 @@ class analysis:
             self.process()
 
 
+def PGF_plots():
+    # activate pgf-plotting
+    matplotlib.use("pgf")
+    # print('Using the ' + matplotlib.get_backend() + ' backend') #for debugging
+
+    #update parameter for the right output font/size
+    plt.rcParams.update({
+        "pgf.texsystem": "pdflatex",
+        "font.family": "serif", # use serif/main font for text elements
+        # 'font.size': 10,        # change text size
+        "pgf.rcfonts": False,   # don't setup fonts from rc parameters
+        'figure.autolayout': True,
+        # "text.usetex": True,     # use inline math for ticks - THIS BREAKS THE EXPORT!
+    })
+
+    # change figure size for all figures plotted
+    # LaTeX textwidth is 4.7747 inches and textheight is 9.3611 inches
+    # divide textheight by 3 so that two figures + captions fit on one page
+    # plt.rcParams["figure.figsize"] = (4.7747, 9.3611/3.5)
+    # plt.rcParams["figure.figsize"] = (4.7747/2, 9.3611/3.5)
+    return 
+
+def Save_Plot(path, title):
+    #check if PGF is used and save plot
+    if matplotlib.get_backend() == 'pgf':
+        plt.savefig(path + title +'.pgf', format='pgf')
+        print('Plot saved as PGF')
+    else:
+        plt.savefig(path + title +'.pdf')
+        print('Plot saved as PDF')
+
+def Scriptpath(file):
+    # path to where 'file' is
+    scriptpath = str(os.path.abspath(os.path.dirname(file))) + '/'
+    # print("Script path is:") #for debugging
+    # print(scriptpath) #for debugging
+    return scriptpath
+
+scriptpath  = Scriptpath(__file__)
+
+
 if __name__ == "__main__":
     plot_hist, only_avg = parse_args()
     filename = argv[3]
@@ -218,7 +261,7 @@ if __name__ == "__main__":
 
     print(f"rejected {ana.rejected} for pile ups")
 
-
+    # PGF_plots() #comment in and out to save as PGF or PDF
     
     if plot_hist:
         print(ana.ys)
@@ -262,4 +305,6 @@ if __name__ == "__main__":
         _, _, y1, y2 = plt.axis()
         plt.fill_between(np.linspace(offset, long_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="blue", alpha=0.2)
         plt.fill_between(np.linspace(offset, short_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="green", alpha=0.2)
+
+    Save_Plot(scriptpath, "Pulse_comparison")
     plt.show()
