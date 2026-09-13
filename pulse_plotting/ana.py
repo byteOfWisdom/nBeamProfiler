@@ -8,6 +8,7 @@ from progress_print import pbar
 import inspect
 import sciebo_fetch
 import os
+import plot_export as export
 
 
 short_integration =  12.5e-9 * 1
@@ -209,45 +210,9 @@ class analysis:
             self.process()
 
 
-def PGF_plots():
-    # activate pgf-plotting
-    matplotlib.use("pgf")
-    # print('Using the ' + matplotlib.get_backend() + ' backend') #for debugging
 
-    #update parameter for the right output font/size
-    plt.rcParams.update({
-        "pgf.texsystem": "pdflatex",
-        "font.family": "serif", # use serif/main font for text elements
-        # 'font.size': 10,        # change text size
-        "pgf.rcfonts": False,   # don't setup fonts from rc parameters
-        'figure.autolayout': True,
-        # "text.usetex": True,     # use inline math for ticks - THIS BREAKS THE EXPORT!
-    })
 
-    # change figure size for all figures plotted
-    # LaTeX textwidth is 4.7747 inches and textheight is 9.3611 inches
-    # divide textheight by 3 so that two figures + captions fit on one page
-    # plt.rcParams["figure.figsize"] = (4.7747, 9.3611/3.5)
-    # plt.rcParams["figure.figsize"] = (4.7747/2, 9.3611/3.5)
-    return 
-
-def Save_Plot(path, title):
-    #check if PGF is used and save plot
-    if matplotlib.get_backend() == 'pgf':
-        plt.savefig(path + title +'.pgf', format='pgf')
-        print('Plot saved as PGF')
-    else:
-        plt.savefig(path + title +'.pdf')
-        print('Plot saved as PDF')
-
-def Scriptpath(file):
-    # path to where 'file' is
-    scriptpath = str(os.path.abspath(os.path.dirname(file))) + '/'
-    # print("Script path is:") #for debugging
-    # print(scriptpath) #for debugging
-    return scriptpath
-
-scriptpath  = Scriptpath(__file__)
+scriptpath  = export.Scriptpath(__file__)
 
 
 if __name__ == "__main__":
@@ -261,7 +226,8 @@ if __name__ == "__main__":
 
     print(f"rejected {ana.rejected} for pile ups")
 
-    # PGF_plots() #comment in and out to save as PGF or PDF
+    # export.PGF_plots() #comment in and out to save as PGF or PDF
+    fig = plt.figure(figsize=(6, 3), dpi=500)
     
     if plot_hist:
         print(ana.ys)
@@ -272,7 +238,7 @@ if __name__ == "__main__":
         n_res, _ = curve_fit(pulse_function, n_time, n_amp, [max(n_amp), 5e-9, n_time[np.argmax(n_amp)], 1e-9])
         gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp), 5e-9, gamma_time[np.argmax(gamma_amp)], 1e-9])
         print(n_res)
-        plt.plot(n_time*1e9+3, n_amp/max(n_amp), color='b', label="average $n$-pulse")
+        plt.plot(n_time*1e9+3, n_amp/max(n_amp), color='b', label="average n-pulse")
         plt.plot(gamma_time*1e9+3, gamma_amp/max(gamma_amp), color='r', label="average $\\gamma$-pulse")
 
         plt.xlim(-16, 185)
@@ -281,30 +247,31 @@ if __name__ == "__main__":
         plt.axvline(x=0, color='black', linestyle='--', linewidth=1)#vline for start
 
         plt.axhline(y=1.05, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 11.5)/span, linewidth=1, color='black')#hline from start to short
-        plt.text(6, 1.05, 'short', fontsize=10, va='center', ha='center', backgroundcolor='w')
+        plt.text(6, 1.1, 'short', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
 
-        plt.axhline(y=1.15, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 179)/span, linewidth=1, color='black')#hline from start to long
-        plt.text(90, 1.15, 'long\ntotal', fontsize=10, va='center', ha='center', backgroundcolor='w')
+        plt.axhline(y=1.15, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from start to long
+        plt.text(90, 1.19, 'long', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        plt.text(90, 1.11, 'total', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
 
-        plt.axhline(y=1.05, xmin=(abs(plt.xlim()[0]) + 13.5)/span, xmax=(abs(plt.xlim()[0]) + 179)/span, linewidth=1, color='black')#hline from short to long
-        plt.text(85, 1.05, 'tail', fontsize=10, va='center', ha='center', backgroundcolor='w')
+        plt.axhline(y=0.95, xmin=(abs(plt.xlim()[0]) + 13.5)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from short to long
+        plt.text(90, 0.91, 'tail', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
         
         plt.axvline(x=12.5, color='black', linestyle='--', linewidth=1)#vline for short
-        plt.axvline(x=180, color='black', linestyle='--', linewidth=1)#vline for long
-        
+        plt.axvline(x=175, color='black', linestyle='--', linewidth=1)#vline for long
 
         # plt.plot(n_time, pulse_function(n_time, *n_res), label="neutron fit")
         # plt.plot(gamma_time, pulse_function(gamma_time, *gamma_res), label="gamma fit")
-        plt.legend(loc='center right')
-        plt.xlabel('time / ns')
+        plt.legend(loc='center')
+        plt.xlabel('$t$ / ns')
         plt.ylabel('normalized pulse height / arb. unit')
         plt.grid()
-        plt.ylim(-0.05, 1.2)
+        plt.ylim(-0.05, 1.25)
     else:
         # plt.yscale("log")
         _, _, y1, y2 = plt.axis()
         plt.fill_between(np.linspace(offset, long_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="blue", alpha=0.2)
         plt.fill_between(np.linspace(offset, short_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="green", alpha=0.2)
 
-    Save_Plot(scriptpath, "Pulse_comparison")
+    plt.tight_layout()
+    export.Save_Plot(scriptpath, "Pulse_comparison")
     plt.show()
