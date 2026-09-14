@@ -6,7 +6,6 @@ import scipy as sp
 from progress_print import pbar
 import inspect
 import sciebo_fetch
-# import numba
 import _pulse_func
 
 short_integration =  12.5e-9 * 1
@@ -44,33 +43,6 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
     return params_cf, (std_devs_cf, goodness_cf)
 
-
-# # @np.vectorize
-# @numba.njit
-# def mod_gaussian(t, t_r, sigma, tau):
-#     dt = t - t_r
-#     # mask = np.heaviside(2 * (sigma ** 2) + dt * tau, 0)
-#     mask = 2 * (sigma ** 2) + dt * tau > 0
-#     if mask:
-#         return np.exp(- dt ** 2 / (2 * (sigma ** 2) + tau * dt))
-#     else:
-#         return 0
-
-# @np.vectorize
-# @numba.njit
-# def f_egh(t, H, tau, t_r, sigma):
-#     # dt = t - t_r
-#     # mask = np.heaviside(2 * (sigma ** 2) + dt * tau, 0)
-#     f_0 = mod_gaussian(t, t_r, sigma, tau)
-#     # f_0[mask == 0] = 0
-#     return H * f_0
-
-
-# @np.vectorize
-# # @numba.njit
-# def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma_0, sigma_1):
-#     return f_egh(t, a, tau_0, t0, sigma_0) + f_egh(t, b, tau_1, t0, sigma_1)
-# pulse_function = np.vectorize(_pulse_func.lib.pulse_func)
 
 def pulse_function(t, a, b, tau_0, tau_1, t0,  sigma_0, sigma_1):
     out = np.zeros_like(t)
@@ -145,11 +117,14 @@ def pre_process(time, voltage):
 def parse_args():
     plot_hist = False
     only_avg = False
+    do_fit = False
     if len(argv) > 4 and argv[4] == "hist":
         plot_hist = True
     if len(argv) > 4 and argv[4] == "avg":
         only_avg = True
-    return plot_hist, only_avg
+    if len(argv) > 4 and argv[4] == "fit":
+        do_fit = True
+    return plot_hist, only_avg, do_fit
 
 
 class analysis:
@@ -161,6 +136,7 @@ class analysis:
         self.trimming_func = trim
         self.baseline_func = baseline_restore
 
+        self.fit_all = False
         self.n_gamma_cutoff = 0.45 # TODO
         self.t, self.u = None, None
         self.plot_all = False
@@ -168,6 +144,9 @@ class analysis:
         self.file_count = stop_file - start_file + 1
         self.ys = np.zeros(self.file_count)
         self.long = np.zeros(self.file_count)
+        self.fit_res = np.empty((self.file_count, 7))
+        self.fit_rsq = np.empty(self.file_count)
+        self.is_neutron = np.zeros(self.file_count) != 0
         print(f"loading {len(self.ys)} files")
 
         # init various counters
@@ -183,6 +162,7 @@ class analysis:
         self.delimiter = "\t"
         self.current_filenum = -1
         self.gamma_count, self.neutron_count = 0, 0
+
 
     def init_reader(self):
         t, u = None, None
@@ -224,9 +204,11 @@ class analysis:
         if self.y_current > self.n_gamma_cutoff:
             self.neutron_count += 1
             self.avg_pulse_neutron += (self.u / min(self.u))
+            self.is_neutron[self.current_filenum] = True
         else:
             self.gamma_count += 1
             self.avg_pulse_gamma += (self.u / min(self.u))
+            self.is_neutron[self.current_filenum] = False
 
     def process(self):
         # pre processing does pile up rejection, so only do the rest if that goes ok
@@ -234,31 +216,53 @@ class analysis:
             self.psd()
             if self.plot_all:
                 plt.plot(self.t, self.u)
+
+    def fit_current(self):
+        self.p0 = [0.5 * max(self.u), 0.5 * max(self.u), 3e-09, 3e-08, 0, 0, 0]
+        try:
+            res, (_, rsq) = curve_fit(pulse_function, self.t[self.t < 0.75e-7], self.u[self.t < 0.75e-7] / min(self.u), self.p0)
+            self.fit_res[self.current_filenum] = res
+            self.fit_rsq[self.current_filenum] = rsq
+        except Exception as _:
+            pass
             
     def run(self):
         self.init_reader()
         while(self.load_next()):
             self.process()
+            if self.fit_all:
+                self.fit_current()
 
-    def fit_all(self):
-        pass
+        if self.fit_all:
+            self.tau_0 = np.min(np.array([self.fit_res[:, 2], self.fit_res[:, 3]]), axis=0)
+            self.tau_1 = np.max(np.array([self.fit_res[:, 2], self.fit_res[:, 3]]), axis=0)
+            self.tau_0[self.tau_0 > 1e-6] = np.nan
+            self.tau_0[self.tau_0 < 1e-11] = np.nan
+            self.tau_1[self.tau_1 > 1e-6] = np.nan
+            self.tau_1[self.tau_1 < 1e-11] = np.nan
+            
 
 
 if __name__ == "__main__":
-    plot_hist, only_avg = parse_args()
+    plot_hist, only_avg, do_fit = parse_args()
     filename = argv[3]
     start_file, stop_file = int(argv[1]), int(argv[2])
     ana = analysis(filename, start_file, stop_file)
     ana.baseline_func = linear_baseline
     ana.retrigger_func = retrigger_max
-    ana.plot_all = not (plot_hist or only_avg)
+    ana.fit_all = do_fit
+    ana.plot_all = not (plot_hist or only_avg or do_fit)
     ana.run()
 
     print(f"rejected {ana.rejected} for pile ups")
+    print(f"got {ana.neutron_count} neutrons and {ana.gamma_count} gammas")
 
-
-    
-    if plot_hist:
+    if do_fit:
+        print(ana.tau_0)
+        print(ana.fit_rsq)
+        plt.hist(ana.tau_0[~ana.is_neutron],  bins=50, range=(0, 6e-9))
+        # plt.hist2d((ana.tau_1 / ana.tau_0)[ana.ys != 0], ana.ys[ana.ys != 0], (30, 30), range=[[0, 40], [0.2, 0.75]])
+    elif plot_hist:
         print(ana.ys)
         plt.hist2d(np.abs(ana.long[ana.ys != 0]), ana.ys[ana.ys != 0], (75, 75), range=[[0, 4e-8], [0.2, 0.75]])
     elif only_avg:
