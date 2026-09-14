@@ -273,5 +273,5 @@ if __name__ == "__main__":
         plt.fill_between(np.linspace(offset, short_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="green", alpha=0.2)
 
     plt.tight_layout()
-    export.Save_Plot(scriptpath, "Pulse_comparison")
+    export.Save_Plot(scriptpath + "plots/", "Pulse_comparison")
     plt.show()
