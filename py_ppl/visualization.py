@@ -3,6 +3,7 @@ import matplotlib
 import numpy as np
 from scipy.optimize import curve_fit
 from sigfig import round         #import an easy way of scientific rounding
+import plot_export as export
 
 
 def matrix(arr):
@@ -26,38 +27,7 @@ def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n, offset):
     return (A * np.exp(exponent) + offset).ravel()  #with offset
     # return (A * np.exp(exponent)).ravel()  #without offset
 
-#Plot for Preview 4
-def plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args):
-    fig, ax = plt.subplots(2, 1)
-    fig.set_size_inches(8, 8)
-
-    # print(timing_pulses*6.25e-8)
-    # plt.figure(figsize=(16, 8), dpi=50)
-    ax[0].title.set_text("Neutron Counts during Scan")
-    ax[0].plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
-    ax[0].vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
-    for xc in timing_pulses*6.25e-8:
-        ax[0].vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
-    ax[0].set_xlabel("time") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
-    ax[0].set_ylabel("neutron count")
-    ax[0].set_xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 ) #start plotting 10s before the first pulse and stop 10s after the last one
-    ax[0].legend(loc="best")
-    # plt.show()
-
-    # PULSE SHAPE DISCRIMINATION plot
-    ax[1].title.set_text("Pulse Shape Discrimination")
-    ax[1].hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
-    ax[1].axhline(y=args['n_gamma_cut'], color='black', linestyle='-')
-    ax[1].text(60000, args['n_gamma_cut']+0.02, 'neutrons', fontsize=12, color='black', ha='center', va='center')
-    ax[1].text(60000, args['n_gamma_cut']-0.02, 'gammas', fontsize=12, color='black', ha='center', va='center')
-    ax[1].set_xlabel("long")
-    ax[1].set_ylabel("(long-short)/long")
-    fig.tight_layout()
-    # Save the plot as a PDF  
-    # plt.savefig("preview4.pdf", format="pdf") 
-    plt.show()
-
-#Plots for Preview 1
+#Plots for Preview 1 - 2D-Heatmaps
 def plot_a(data, scint, reconvolved_norm, result, args):
     fig, ax = plt.subplots(2, 2)
 
@@ -312,4 +282,93 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
 
     # Save the plot as a PDF  
     # plt.savefig("preview2.pdf", format="pdf") 
+    plt.show()
+
+
+#Plot for Preview 4 - Scan-Count Plot, PSD-Plot
+def plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args):
+    fig, ax = plt.subplots(2, 1)
+    fig.set_size_inches(8, 8)
+
+    # print(timing_pulses*6.25e-8)
+    # plt.figure(figsize=(16, 8), dpi=50)
+    ax[0].title.set_text("Neutron Counts during Scan")
+    ax[0].plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
+    ax[0].vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
+    for xc in timing_pulses*6.25e-8:
+        ax[0].vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
+    ax[0].set_xlabel("$t$ / s") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
+    ax[0].set_ylabel("neutron count")
+    ax[0].set_xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 ) #start plotting 10s before the first pulse and stop 10s after the last one
+    ax[0].legend(loc="best")
+    # plt.show()
+
+    # PULSE SHAPE DISCRIMINATION plot
+    ax[1].title.set_text("Pulse Shape Discrimination")
+    ax[1].hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
+    ax[1].axhline(y=args['n_gamma_cut'], color='black', linestyle='-')
+    ax[1].text(60000, args['n_gamma_cut']+0.02, 'neutrons', fontsize=12, color='black', ha='center', va='center')
+    ax[1].text(60000, args['n_gamma_cut']-0.02, 'gammas', fontsize=12, color='black', ha='center', va='center')
+    ax[1].set_xlabel("long")
+    ax[1].set_ylabel("(long-short)/long")
+    fig.tight_layout()
+    # Save the plot as a PDF  
+    # plt.savefig("preview4.pdf", format="pdf") 
+    plt.show()
+
+#Plot for Preview 5 - export Scan-Count Plot and PSD-Plot
+def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args, PGF=False):
+
+    #set path the where script is
+    scriptpath  = export.Scriptpath(__file__)
+
+    if PGF == True:
+        export.PGF_plots() #save as PGF otherwise PDF
+
+    # SCAN COUNT plot
+    fig = plt.figure(figsize=(6, 3), dpi=500)
+    # fig, ax = fig, ax = plt.subplots(1, 1, figsize=(6, 3), dpi=500)
+    # print(timing_pulses*6.25e-8)
+    # plt.figure(figsize=(16, 8), dpi=50)
+    # ax.title.set_text("Neutron Counts during Scan")
+    plt.plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
+    plt.vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
+    for xc in timing_pulses*6.25e-8:
+        plt.vlines(x=xc, ymin=-500, ymax=0,color='red', linestyle='-')
+    plt.xlabel("$t$ / s") #what the duck is the unit of this axis? nano seconds? scan should have taken around 30cm/(5cm/s)*80 = 480s = 8min
+    plt.ylabel("neutron count")
+    plt.xlim(timing_pulses[0]*6.25e-8 -10,timing_pulses[-1]*6.25e-8 +10 ) #start plotting 10s before the first pulse and stop 10s after the last one
+    plt.legend(loc="best")
+    plt.tight_layout()
+    export.Save_Plot(scriptpath + "plots/", "scan_count")
+    plt.show()
+
+    # PULSE SHAPE DISCRIMINATION plot
+    # fig, ax = plt.subplots(1, 1, figsize=(6, 3), dpi=500)
+    fig = plt.figure(figsize=(6, 3), dpi=500)
+    ax = fig.add_subplot(111)
+    # ax.title.set_text("Pulse Shape Discrimination")
+    ax.hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
+    ax.axhline(y=args['n_gamma_cut'], color='black', linewidth=1 ,linestyle='--')
+    ax.text(60000, args['n_gamma_cut']+0.03, 'neutrons', fontsize=8, color='black', ha='center', va='center')
+    ax.text(60000, args['n_gamma_cut']-0.03, 'gammas', fontsize=8, color='black', ha='center', va='center')
+    ax.set_xlabel("long / channel ")
+    ax.set_ylabel("$Q$")
+
+    # secondary axis in kev
+    def channel2MeV(x): #channel into Mev
+        a= 1/15000  # this value is guessed for now
+        b=0         # this value is guessed for now
+        return a*x + b
+
+    def MeV2channel(x):
+        a = 1/15000 # this value is guessed for now
+        b=0         # this value is guessed for now
+        return (x - b) / a
+
+    secax = ax.secondary_xaxis('top', functions=(channel2MeV, MeV2channel))
+    secax.set_xlabel("$E$ / MeV")
+
+    plt.tight_layout()
+    export.Save_Plot(scriptpath + "plots/", "PSD_plot")
     plt.show()

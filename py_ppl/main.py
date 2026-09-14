@@ -124,6 +124,8 @@ def main():
     if args['preview'] == 2 or args['preview'] == 3 or args['preview'] == 4:
         diff1, diff2 = [], []
         visualization.plot_b(data, result, reconvolved_norm, diff1, diff2, args)
+    if args['preview'] == 5:
+            visualization.plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args, PGF=False)
 
 
 if __name__ == "__main__":
