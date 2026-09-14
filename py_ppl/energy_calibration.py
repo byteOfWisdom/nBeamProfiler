@@ -178,14 +178,15 @@ class dataset_analysis:
             self.compton_edges += [self.res[5 * i + 1]]
             self.edge_errors += [self.err[5 * i + 1]]
 
-    def plot(self):
+    def plot(self, defer_show=False):
         plt.plot(self.bin_centers, self.hist)
         f = np.vectorize(make_multi_edge(self.n))
         plt_func(f, self.res, f"$R^2={round(self.rsq, 3)}$", self.xrange)
         plt.yscale("log")
         plt.title(self.isotope)
-        plt.ylim(bottom=0.9)
-        plt_finish("Long", "Energie / eV")
+        if not defer_show:
+            plt.ylim(bottom=0.9)
+            plt_finish("Long", "Energie / eV")
 
 
 # everything is eV
@@ -234,8 +235,11 @@ def main():
 
         ana = dataset_analysis(ds, elem)
         ana.fit()
-        ana.plot()
+        ana.plot(defer_show=True)
         data += [ana]
+
+    plt.ylim(bottom=0.9)
+    plt_finish("Long", "Energie / eV")
 
     lines, energies, line_err = make_calibration_data(data)
     res, (_, rsq) = curve_fit(linear, lines, energies)
