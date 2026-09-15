@@ -240,7 +240,7 @@ def main():
         data += [ana]
 
     plt.ylim(bottom=0.9)
-    plt_finish("Long", "Energie / eV")
+    plt_finish("Long", "counts")
 
     lines, energies, line_err = make_calibration_data(data)
     res, (_, rsq) = curve_fit(linear, lines, energies)
