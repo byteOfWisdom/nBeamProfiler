@@ -102,10 +102,11 @@ class config:
     guess_factor = 7000 / 1e6
 
 
-gamma_line_db = {
+gamma_line_db = { #these are the gamma energies of the isotopes in eV
     "Na": [511e3, 1274.537e3],
     "Cs":[661.657e3],
     "AmBe": [4438e3]
+    # "AmBe": [4438e3-3*511e3] #energy calibration looks nice, if we assume the AmBe compton edge is not from 4400kev but from 2800kev (triple escape peak?!)
 }
 
 initial_guess_db = {
@@ -115,7 +116,7 @@ initial_guess_db = {
 }
 
 
-def edge_fn(x, a, x0, sigma, b, c):
+def edge_fn(x, a, x0, sigma, b, c): #x0 is the compton edge position
     return a * sp.special.erfc((x - x0) / (np.sqrt(2) * sigma)) + b * x + c
 
 
@@ -190,7 +191,7 @@ class dataset_analysis:
 
 
 # everything is eV
-def compton_edge(gamma_energy):
+def compton_edge(gamma_energy): # Calculate compton edge energy from gamma energy
     me_csq = (sp.constants.c ** 2) * sp.constants.electron_mass / sp.constants.electron_volt
     return 2 * gamma_energy ** 2 / (me_csq + 2 * gamma_energy)
 
@@ -240,13 +241,16 @@ def main():
         data += [ana]
 
     plt.ylim(bottom=0.9)
-    plt_finish("Long", "counts")
+    plt_finish("long / channel", "counts")
 
+    
     lines, energies, line_err = make_calibration_data(data)
     res, (_, rsq) = curve_fit(linear, lines, energies)
     plt_errorbar(lines, energies, yerr=line_err)
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
     plt_func(linear, res, f"$R^2={round(rsq, 3)}$")
-    plt_finish("Bin", "Energie / eV")
+    plt_finish("long / channel", "$E$ / eV")
 
 
 if __name__ == "__main__":
