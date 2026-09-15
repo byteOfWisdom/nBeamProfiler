@@ -105,7 +105,9 @@ class config:
 gamma_line_db = { #these are the gamma energies of the isotopes in eV
     "Na": [511e3, 1274.537e3],
     "Cs":[661.657e3],
-    "AmBe": [4438e3]
+    # "AmBe": [4438e3]
+    "AmBe": [4438e3-1*511e3]
+    # "AmBe": [4438e3-2*511e3]
     # "AmBe": [4438e3-3*511e3] #energy calibration looks nice, if we assume the AmBe compton edge is not from 4400kev but from 2800kev (triple escape peak?!)
 }
 
@@ -184,7 +186,7 @@ class dataset_analysis:
         f = np.vectorize(make_multi_edge(self.n))
         plt_func(f, self.res, f"$R^2={round(self.rsq, 3)}$", self.xrange)
         plt.yscale("log")
-        plt.title(self.isotope)
+        # plt.title(self.isotope)
         if not defer_show:
             plt.ylim(bottom=0.9)
             plt_finish("Long", "Energie / eV")
