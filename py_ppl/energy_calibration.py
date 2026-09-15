@@ -256,13 +256,16 @@ def main():
 
     if not plot_single:
         plt.ylim(bottom=0.9)
-        plt_finish("long / channel", "$E$ / eV")
+        plt.xlim(right = 65000)
+        plt_finish("long / channel", "counts")
 
     lines, energies, line_err = make_calibration_data(data)
     res, (_, rsq) = curve_fit(linear, lines, energies)
     plt_errorbar(lines, energies, yerr=line_err)
     plt.xlim(left=0)
+    # plt.xlim(right=65000)
     plt.ylim(bottom=0)
+    # plt.ylim(top=5000000)
     plt_func(linear, res, f"$R^2={round(rsq, 3)}$")
     plt_finish("long / channel", "$E$ / eV")
 
