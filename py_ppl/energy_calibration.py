@@ -216,7 +216,8 @@ def make_calibration_data(list_of_datasets):
 def main():
     # call with: python energy_calibration.py 
 
-    url = "https://uni-bonn.sciebo.de/public.php/dav/files/qArdCtRpESZDtYk/?accept=zip"
+    # url = "https://uni-bonn.sciebo.de/public.php/dav/files/qArdCtRpESZDtYk/?accept=zip" #url with all files
+    url = "https://uni-bonn.sciebo.de/public.php/dav/files/QFjNaqbJALJHYTS/?accept=zip"   #url with one file per source
     if len(argv) > 1 and argv[1] != "reload":
         url = argv[1]
     calibration_data = sciebo_fetch.fetch(url, "gamma_calib_data", "reload" in argv)
