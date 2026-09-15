@@ -225,8 +225,13 @@ def main():
         url = argv[1]
     calibration_data = sciebo_fetch.fetch(url, "gamma_calib_data", "reload" in argv)
 
+    plot_single = "single" in argv
+
     data = []
+    print(calibration_data.ls())
     for fname in calibration_data.ls():
+        if fname == 'Szinti_Calib/Cs137_2.csv':
+            continue
         elem = None
         for element in gamma_line_db.keys():
             if element in fname:
@@ -236,16 +241,21 @@ def main():
         long, short, time, channel, _ = np.genfromtxt(calibration_data.np_loadable(fname), delimiter=",", unpack=True)
 
         ds = data_loading.dataset(short, long, time, channel)
+        # plt.cla()
+        # plt.hist(ds.y(), 100, (0, 0.75))
+        # plt.show()
+        # n gamma discrimination (but go for the gammas!!)
+        ds = ds.subset(ds.y() < 0.4)
 
         ana = dataset_analysis(ds, elem)
         ana.fit()
-        ana.plot(defer_show=True)
+        ana.plot(defer_show=not plot_single)
         data += [ana]
 
-    plt.ylim(bottom=0.9)
-    plt_finish("long / channel", "counts")
+    if not plot_single:
+        plt.ylim(bottom=0.9)
+        plt_finish("long / channel", "$E$ / eV")
 
-    
     lines, energies, line_err = make_calibration_data(data)
     res, (_, rsq) = curve_fit(linear, lines, energies)
     plt_errorbar(lines, energies, yerr=line_err)
