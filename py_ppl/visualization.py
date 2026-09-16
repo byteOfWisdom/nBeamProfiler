@@ -371,32 +371,19 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
         # a = 2.85880836e+08 
         # b = 3.23529442e-09    #from ev -> channel
         # c = -9.10068348e-01
-        a = 2.74782942e+08  
-        b = 3.30042860e-03      #from MeV -> channel
-        c = -8.92060609e+05
+        a = 3.20180374e+04  
+        b = 5.02109330e-01      #from Mev -> channel
+        c = -1.00000000e+01
         return a * np.log(b*x+1) + c*x
     
     def channel2MeV_log(x):
         # a = 2.85880836e+08 
         # b = 3.23529442e-09  #from channel -> ev
         # c = -9.10068348e-01
-        a = 2.74782942e+08  
-        b = 3.30042860e-03      #from channel -> MeV
-        c = -8.92060609e+05
+        a = 3.20180374e+04  
+        b = 5.02109330e-01      #from channel -> Mev
+        c = -1.00000000e+01
         return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real #thanks wolfram alpha!
-
-
-    print("-----------")
-    print(MeV2channel_log(channel2MeV_log(5)).real)
-    print("1 MeV at Channel " + str(MeV2channel_log(1)))
-    print("2 MeV at Channel " + str(MeV2channel_log(2)))
-    print("3 MeV at Channel " + str(MeV2channel_log(3)))
-    print("4 MeV at Channel " + str(MeV2channel_log(4)))
-    print("5 MeV at Channel " + str(MeV2channel_log(5)))
-    print("6 MeV at Channel " + str(MeV2channel_log(6)))
-    print("7 MeV at Channel " + str(MeV2channel_log(7)))
-    print("8 MeV at Channel " + str(MeV2channel_log(8)))
-    print("-----------")
 
 
     secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
