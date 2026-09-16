@@ -6,6 +6,7 @@ from sys import argv
 import inspect
 # import std
 import numba
+import scipy
 import sciebo_fetch
 
 
@@ -18,13 +19,12 @@ def linear(x, a, b):
 
 @numba.njit
 def log(x, a, b, c):
-    return a * np.log(b*(x/1e6)+1) + c*(x/1e6)
-    # return a * np.log(b*x+1) + c*x
+    # return a * np.log(b*(x/1e6)+1) + c*(x/1e6)
+    return a * np.log(b*x+1) + c*x
 
-@numba.njit
 def inverse_log(x, a, b, c):
-    return a * np.log(b*(x/1e6)+1) + c*(x/1e6)
-    # return a * np.log(b*x+1) + c*x
+    return (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) #thanks wolfram alpha!
+
 
 def none(x):
     return isinstance(x, type(None))
@@ -272,7 +272,11 @@ def main():
 
     #for debugging
     print("----------")
-    print(log(0.5, res[0],res[1],res[2]))
+    test = 4.2
+    print(str(test) + " MeV is channel:")
+    print(log(test, res[0],res[1],res[2]))
+    print("is reconverted in MeV")
+    print(inverse_log(log(test, res[0],res[1],res[2]), res[0],res[1],res[2]).real)
     print("----------")
     
     # plt_errorbar(lines, energies, yerr=line_err)
