@@ -108,12 +108,7 @@ class config:
 gamma_line_db = { #these are the gamma energies of the isotopes in eV
     "Na": [511e3, 1274.537e3],
     "Cs":[661.657e3],
-    # "AmBe": [2223e3] # Hydrogen
-    # "AmBe": [2821e3] # Aluminum
     "AmBe": [4438e3]
-    # "AmBe": [4438e3-1*511e3]
-    # "AmBe": [4438e3-2*511e3]
-    # "AmBe": [4438e3-3*511e3] #energy calibration looks nice, if we assume the AmBe compton edge is not from 4400kev but from 2800kev (triple escape peak?!)
 }
 
 initial_guess_db = {
