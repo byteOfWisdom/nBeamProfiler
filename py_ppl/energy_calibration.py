@@ -53,7 +53,7 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
         p0 = np.ones(argc)
 
     func = np.vectorize(func)
-    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=False)
+    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True)
     std_devs_cf = np.sqrt(np.diag(cov))
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
     return params_cf, (std_devs_cf, goodness_cf)
