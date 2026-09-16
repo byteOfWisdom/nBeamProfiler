@@ -16,6 +16,9 @@ error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
 def linear(x, a, b):
     return a * x + b
 
+@numba.njit
+def log(x, a, b, c):
+    return a * np.log(b*x+1) + c*x
 
 def none(x):
     return isinstance(x, type(None))
@@ -44,7 +47,7 @@ def plt_errorbar(xval, yval, xerr=None, yerr=None, label=None, marker=None, alph
     plt.errorbar(xval, yval, xerr=xerr, yerr=yerr, label=label, **params)
 
 
-def curve_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None):
+def curve_fit(func, x_values, y_values, p0=None, maxfev=99999999, y_errors=None):
     if some(y_errors):
         y_errors[y_errors == 0] = np.nan
 
@@ -106,8 +109,8 @@ gamma_line_db = { #these are the gamma energies of the isotopes in eV
     "Na": [511e3, 1274.537e3],
     "Cs":[661.657e3],
     # "AmBe": [2223e3] # Hydrogen
-    "AmBe": [2821e3] # Aluminum
-    # "AmBe": [4438e3]
+    # "AmBe": [2821e3] # Aluminum
+    "AmBe": [4438e3]
     # "AmBe": [4438e3-1*511e3]
     # "AmBe": [4438e3-2*511e3]
     # "AmBe": [4438e3-3*511e3] #energy calibration looks nice, if we assume the AmBe compton edge is not from 4400kev but from 2800kev (triple escape peak?!)
@@ -260,14 +263,20 @@ def main():
         plt_finish("long / channel", "counts")
 
     lines, energies, line_err = make_calibration_data(data)
-    res, (_, rsq) = curve_fit(linear, lines, energies)
-    plt_errorbar(lines, energies, yerr=line_err)
+    # res, (_, rsq) = curve_fit(linear, lines, energies)
+    # res, (_, rsq) = curve_fit(log, lines, energies)
+    res, (_, rsq) = curve_fit(log, energies, lines, p0=[1,1,0.001])
+    print(res)
+    # plt_errorbar(lines, energies, yerr=line_err)
+    plt_errorbar(energies, lines, yerr=line_err)
     plt.xlim(left=0)
     # plt.xlim(right=65000)
     plt.ylim(bottom=0)
     # plt.ylim(top=5000000)
-    plt_func(linear, res, f"$R^2={round(rsq, 3)}$")
-    plt_finish("long / channel", "$E$ / eV")
+    # plt_func(linear, res, f"$R^2={round(rsq, 3)}$")
+    plt_func(log, res, f"$R^2={round(rsq, 3)}$")
+    # plt_finish("long / channel", "$E$ / eV")
+    plt_finish("$E$ / eV", "long / channel", )
 
 
 if __name__ == "__main__":
