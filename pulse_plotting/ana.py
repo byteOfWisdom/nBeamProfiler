@@ -1,5 +1,6 @@
 #!python3
 from matplotlib import pyplot as plt
+import matplotlib
 from sys import argv
 import numpy as np
 import scipy as sp
@@ -7,6 +8,8 @@ from progress_print import pbar
 import inspect
 import sciebo_fetch
 import numba
+import os
+import plot_export as export
 
 
 short_integration =  12.5e-9 * 1
@@ -232,6 +235,11 @@ class analysis:
             self.process()
 
 
+
+
+scriptpath  = export.Scriptpath(__file__)
+
+
 if __name__ == "__main__":
     plot_hist, only_avg = parse_args()
     filename = argv[3]
@@ -244,7 +252,8 @@ if __name__ == "__main__":
 
     print(f"rejected {ana.rejected} for pile ups")
 
-
+    # export.PGF_plots() #comment in and out to save as PGF or PDF
+    fig = plt.figure(figsize=(6, 3), dpi=500)
     
     if plot_hist:
         print(ana.ys)
@@ -257,6 +266,7 @@ if __name__ == "__main__":
         gamma_res, _ = curve_fit(pulse_function, gamma_time, gamma_amp, [max(gamma_amp) / 2, max(gamma_amp) / 2, 5e-9, 10e-9, gamma_time[np.argmax(gamma_amp)], 1e-9, 1e-9])
 
         print(n_res)
+<<<<<<< HEAD
         print(gamma_res)
         plt.yscale("log")
         plt.plot(gamma_time, gamma_amp, label="$\\gamma$ average")
@@ -266,9 +276,42 @@ if __name__ == "__main__":
         plt.ylim([1e-3, 1])
         plt.legend()
         plt.grid()
+=======
+        plt.plot(n_time*1e9+3, n_amp/max(n_amp), color='b', label="average n-pulse")
+        plt.plot(gamma_time*1e9+3, gamma_amp/max(gamma_amp), color='r', label="average $\\gamma$-pulse")
+
+        plt.xlim(-16, 185)
+        span = abs(plt.xlim()[0]) + abs(plt.xlim()[1])
+        print(span)
+        plt.axvline(x=0, color='black', linestyle='--', linewidth=1)#vline for start
+
+        plt.axhline(y=1.05, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 11.5)/span, linewidth=1, color='black')#hline from start to short
+        plt.text(6, 1.1, 'short', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+
+        plt.axhline(y=1.15, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from start to long
+        plt.text(90, 1.19, 'long', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        plt.text(90, 1.11, 'total', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+
+        plt.axhline(y=0.95, xmin=(abs(plt.xlim()[0]) + 13.5)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from short to long
+        plt.text(90, 0.91, 'tail', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        
+        plt.axvline(x=12.5, color='black', linestyle='--', linewidth=1)#vline for short
+        plt.axvline(x=175, color='black', linestyle='--', linewidth=1)#vline for long
+
+        # plt.plot(n_time, pulse_function(n_time, *n_res), label="neutron fit")
+        # plt.plot(gamma_time, pulse_function(gamma_time, *gamma_res), label="gamma fit")
+        plt.legend(loc='center')
+        plt.xlabel('$t$ / ns')
+        plt.ylabel('normalized pulse height / arb. unit')
+        plt.grid()
+        plt.ylim(-0.05, 1.25)
+>>>>>>> energy_cal-nicer_plotting
     else:
         # plt.yscale("log")
         _, _, y1, y2 = plt.axis()
         plt.fill_between(np.linspace(offset, long_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="blue", alpha=0.2)
         plt.fill_between(np.linspace(offset, short_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="green", alpha=0.2)
+
+    plt.tight_layout()
+    export.Save_Plot(scriptpath, "Pulse_comparison")
     plt.show()
