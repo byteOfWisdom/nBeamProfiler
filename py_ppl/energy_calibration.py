@@ -53,7 +53,7 @@ def plt_errorbar(xval, yval, xerr=None, yerr=None, label=None, marker=None, alph
     plt.errorbar(xval, yval, xerr=xerr, yerr=yerr, label=label, **params)
 
 
-def curve_fit(func, x_values, y_values, p0=None, maxfev=99999999, y_errors=None):
+def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, bounds=(-np.inf, np.inf)):
     if some(y_errors):
         y_errors[y_errors == 0] = np.nan
 
@@ -62,7 +62,7 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=99999999, y_errors=None)
         p0 = np.ones(argc)
 
     func = np.vectorize(func)
-    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=False)
+    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=False, bounds=bounds)
     std_devs_cf = np.sqrt(np.diag(cov))
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
     return params_cf, (std_devs_cf, goodness_cf)
@@ -267,7 +267,7 @@ def main():
     # res, (_, rsq) = curve_fit(linear, lines, energies)
     # res, (_, rsq) = curve_fit(log, lines, energies)
     # res, (_, rsq) = curve_fit(log, energies, lines, p0=[1,1,0.001])
-    res, (_, rsq) = curve_fit(log, np.array(energies)/1e6, lines, p0=[1,10,100])
+    res, (_, rsq) = curve_fit(log, np.array(energies)/1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-10) , (np.inf, np.inf, 10)])
     print(res)
 
     #for debugging
@@ -284,8 +284,9 @@ def main():
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
     plt.xlim(left=0)
     # plt.xlim(right=65000)
+    plt.xlim(right=10)
     plt.ylim(bottom=0)
-    # plt.ylim(top=5000000)
+    plt.ylim(top=70000)
     # plt_func(linear, res, f"$R^2={round(rsq, 3)}$")
     plt_func(log, res, f"$R^2={round(rsq, 3)}$")
     # plt_finish("long / channel", "$E$ / eV")
