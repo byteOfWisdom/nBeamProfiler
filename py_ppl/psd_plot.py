@@ -6,18 +6,26 @@ import numpy as np
 import scipy
 
 
-a = 2.85880836e+08 
-b = 3.23529442e-09
-c = -9.10068348e-01
-
-def ch_to_energy(ch):
-    return a * np.log(b * ch + 1) + c * ch
+# a = 2.85880836e+08 
+# b = 3.23529442e-09
+# c = -9.10068348e-01
 
 
-def energy_to_ch(energy):
-    return scipy.optimize.root_scalar(lambda ch: ch_to_energy(ch) - energy, method="newton", x0=30e3).root
-    # return energy
+def energy_to_ch(x):
+    a = 3.20180374e+04  
+    b = 5.02109330e-01 
+    c = -1.00000000e+01
+    return a * np.log(b * x + 1) + c* x
 
+
+def ch_to_energy(x):
+    a = 3.20180374e+04  
+    b = 5.02109330e-01 
+    c = -1.00000000e+01
+    return np.real((a * b * scipy.special.lambertw(c * np.exp(c / (a * b) + x / a) / (a * b)) - c) / (b * c))
+
+
+print(energy_to_ch(4.2))
 
 if __name__ == "__main__":
     if len(argv) < 3:
