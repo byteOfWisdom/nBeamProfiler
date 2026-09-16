@@ -356,17 +356,31 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
     ax.set_ylabel("$Q$")
 
     # secondary axis in kev
-    def channel2MeV(x): #channel into Mev
-        a= 1/15000  # this value is guessed for now
-        b=0         # this value is guessed for now
+    def channel2MeV_lin(x): #channel into Mev
+        a = 1/15000  # this value is guessed for now
+        b = 0         # this value is guessed for now
         return a*x + b
 
-    def MeV2channel(x):
+    def MeV2channel_lin(x):
         a = 1/15000 # this value is guessed for now
-        b=0         # this value is guessed for now
+        b = 0         # this value is guessed for now
         return (x - b) / a
 
-    secax = ax.secondary_xaxis('top', functions=(channel2MeV, MeV2channel))
+    def MeV2channel_log(x, a, b, c):
+        a = 2.85880836e+08 
+        b = 3.23529442e-09
+        c = -9.10068348e-01
+        return a * np.log(b*x+1) + c*x
+    
+    def channel2MeV_log(x, a, b, c):
+        a = 2.85880836e+08 
+        b = 3.23529442e-09
+        c = -9.10068348e-01
+        return #holy shit what is this inverse function?!
+
+
+
+    secax = ax.secondary_xaxis('top', functions=(channel2MeV_lin, MeV2channel_lin))
     secax.set_xlabel("$E$ / MeV")
 
     plt.tight_layout()
