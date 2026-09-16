@@ -3,6 +3,20 @@ import data_loading
 from sys import argv
 import sciebo_fetch
 import numpy as np
+import scipy
+
+
+a = 2.85880836e+08 
+b = 3.23529442e-09
+c = -9.10068348e-01
+
+def ch_to_energy(ch):
+    return a * np.log(b * ch + 1) + c * ch
+
+
+def energy_to_ch(energy):
+    return scipy.optimize.root_scalar(lambda ch: ch_to_energy(ch) - energy, method="newton", x0=30e3).root
+    # return energy
 
 
 if __name__ == "__main__":
@@ -38,8 +52,12 @@ if __name__ == "__main__":
     dataset = data_loading.dataset(short, long, t, c)
     dataset = dataset.subset(dataset.long > dataset.short)
 
-    plt.hist2d(dataset.long, dataset.y(), bins=(bin_count, bin_count), range=((0, max(dataset.long)), (0, max(dataset.y()[dataset.y() < 1]))))
+    fig, ax = plt.subplots()
 
-    if has_ecal:
-        pass
+    ax.hist2d(dataset.long, dataset.y(), bins=(bin_count, bin_count), range=((0, max(dataset.long)), (0, max(dataset.y()[dataset.y() < 1]))))
+    ax.set_xlabel("long / channel")
+    ax.set_ylabel("$Q$")
+    energy_axis = ax.secondary_xaxis("top", functions=(ch_to_energy, energy_to_ch))
+    energy_axis.set_xlabel("energy / MeV")
+
     plt.show()
