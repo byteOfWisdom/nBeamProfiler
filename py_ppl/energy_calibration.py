@@ -21,6 +21,11 @@ def log(x, a, b, c):
     return a * np.log(b*(x/1e6)+1) + c*(x/1e6)
     # return a * np.log(b*x+1) + c*x
 
+@numba.njit
+def inverse_log(x, a, b, c):
+    return a * np.log(b*(x/1e6)+1) + c*(x/1e6)
+    # return a * np.log(b*x+1) + c*x
+
 def none(x):
     return isinstance(x, type(None))
 
@@ -264,6 +269,12 @@ def main():
     # res, (_, rsq) = curve_fit(log, energies, lines, p0=[1,1,0.001])
     res, (_, rsq) = curve_fit(log, np.array(energies)/1e6, lines, p0=[1,10,100])
     print(res)
+
+    #for debugging
+    print("----------")
+    print(log(0.5, res[0],res[1],res[2]))
+    print("----------")
+    
     # plt_errorbar(lines, energies, yerr=line_err)
     # plt_errorbar(energies, lines, yerr=line_err)
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
