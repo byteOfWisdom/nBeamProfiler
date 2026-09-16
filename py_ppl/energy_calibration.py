@@ -18,7 +18,8 @@ def linear(x, a, b):
 
 @numba.njit
 def log(x, a, b, c):
-    return a * np.log(b*x+1) + c*x
+    return a * np.log(b*(x/1e6)+1) + c*(x/1e6)
+    # return a * np.log(b*x+1) + c*x
 
 def none(x):
     return isinstance(x, type(None))
@@ -260,10 +261,12 @@ def main():
     lines, energies, line_err = make_calibration_data(data)
     # res, (_, rsq) = curve_fit(linear, lines, energies)
     # res, (_, rsq) = curve_fit(log, lines, energies)
-    res, (_, rsq) = curve_fit(log, energies, lines, p0=[1,1,0.001])
+    # res, (_, rsq) = curve_fit(log, energies, lines, p0=[1,1,0.001])
+    res, (_, rsq) = curve_fit(log, np.array(energies)/1e6, lines, p0=[1,10,100])
     print(res)
     # plt_errorbar(lines, energies, yerr=line_err)
-    plt_errorbar(energies, lines, yerr=line_err)
+    # plt_errorbar(energies, lines, yerr=line_err)
+    plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
     plt.xlim(left=0)
     # plt.xlim(right=65000)
     plt.ylim(bottom=0)
