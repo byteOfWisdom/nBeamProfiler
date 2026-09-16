@@ -3,6 +3,7 @@ import matplotlib
 import numpy as np
 from scipy.optimize import curve_fit
 from sigfig import round         #import an easy way of scientific rounding
+import scipy
 import plot_export as export
 
 
@@ -366,21 +367,21 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
         b = 0         # this value is guessed for now
         return (x - b) / a
 
-    def MeV2channel_log(x, a, b, c):
+    def MeV2channel_log(x):
         a = 2.85880836e+08 
         b = 3.23529442e-09
         c = -9.10068348e-01
         return a * np.log(b*x+1) + c*x
     
-    def channel2MeV_log(x, a, b, c):
+    def channel2MeV_log(x):
         a = 2.85880836e+08 
         b = 3.23529442e-09
         c = -9.10068348e-01
-        return #holy shit what is this inverse function?!
+        return (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) /1e6 #thanks wolfram alpha!
 
 
 
-    secax = ax.secondary_xaxis('top', functions=(channel2MeV_lin, MeV2channel_lin))
+    secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
     secax.set_xlabel("$E$ / MeV")
 
     plt.tight_layout()
