@@ -25,6 +25,8 @@ def PGF_plots():
     return 
 
 def Save_Plot(path, title):
+    #create directory if not existing
+    os.makedirs(path, exist_ok=True)
     #check if PGF is used and save plot
     if matplotlib.get_backend() == 'pgf':
         plt.savefig(path + title +'.pgf', format='pgf')
