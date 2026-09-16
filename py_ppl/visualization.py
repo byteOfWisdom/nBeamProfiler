@@ -368,20 +368,26 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
         return (x - b) / a
 
     def MeV2channel_log(x):
-        a = 2.85880836e+08 
-        b = 3.23529442e-09
-        c = -9.10068348e-01
-        return a * np.log(b*x+1) + c*x *1e6
+        # a = 2.85880836e+08 
+        # b = 3.23529442e-09    #from ev -> channel
+        # c = -9.10068348e-01
+        a = 3.07032146e+08  
+        b = 3.12128690e+03      #from MeV -> channel
+        c = -9.43495443e+11
+        return a * np.log(b*x+1) + c*x
     
     def channel2MeV_log(x):
-        a = 2.85880836e+08 
-        b = 3.23529442e-09
-        c = -9.10068348e-01
-        return (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) /1e6 #thanks wolfram alpha!
+        # a = 2.85880836e+08 
+        # b = 3.23529442e-09  #from channel -> ev
+        # c = -9.10068348e-01
+        a = 3.07032146e+08  
+        b = 3.12128690e+03    # from channel -> MeV
+        c = -9.43495443e+11
+        return (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) #thanks wolfram alpha!
 
 
     print("-----------")
-    print(MeV2channel_log(channel2MeV_log(100)))
+    print(MeV2channel_log(channel2MeV_log(5)))
     print("-----------")
 
 
