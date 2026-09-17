@@ -8,6 +8,7 @@ import inspect
 import numba
 import scipy
 import sciebo_fetch
+from sigfig import round
 
 
 error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
@@ -19,7 +20,6 @@ def linear(x, a, b):
 
 @numba.njit
 def log(x, a, b, c):
-    # return a * np.log(b*(x/1e6)+1) + c*(x/1e6)
     return a * np.log(b*x+1) + c*x
 
 def inverse_log(x, a, b, c):
@@ -164,7 +164,7 @@ def fit_edges(bin_centers, hist, n, x0_guesses):
     start = max(start, np.argmin(np.abs(bin_centers - (min(x0_guesses) - 5e3))))
     # stop = np.argmin(np.abs(bin_centers - (x0_guesses[-1]))) + 100
     stop = np.argmin(np.abs(bin_centers - (max(x0_guesses) + 5e3)))
-    res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, y_errors=np.sqrt(hist[start:stop]))
+    res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999)#, y_errors=np.sqrt(hist[start:stop]))
     return res, (err, rsq), (bin_centers[start], bin_centers[stop])
 
 
@@ -253,6 +253,10 @@ def main():
         # n gamma discrimination (but go for the gammas!!)
         ds = ds.subset(ds.y() < 0.4)
 
+        # plt.figure(figsize=(6, 3), dpi=500)
+        # plt.rcParams["figure.figsize"] = (16,3)
+        ax = plt.subplot(111)
+
         ana = dataset_analysis(ds, elem)
         ana.fit()
         ana.plot(defer_show=not plot_single)
@@ -260,37 +264,44 @@ def main():
 
     if not plot_single:
         plt.ylim(bottom=0.9)
-        plt.xlim(right = 65000)
+        # plt.xlim(right = 65000)
+
+        #secondary x-axis in MeV
+        def MeV2channel_log(x):
+            a = 3.20180374e+04  
+            b = 5.02109330e-01      #from Mev -> channel
+            c = -1.00000000e+01
+            return a * np.log(b*x+1) + c*x
+        
+        def channel2MeV_log(x):
+            a = 3.20180374e+04  
+            b = 5.02109330e-01      #from channel -> Mev
+            c = -1.00000000e+01
+            return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real #thanks wolfram alpha!
+
+        secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
+        secax.set_xlabel("$E$ / MeV")
+
+        #dashed line to indicate the trigger-threshold. eyeballed to be at channel 2000 for now
+        cutoff = round(channel2MeV_log(2000)*1e3,4)
+        plt.vlines(x=2000, ymin=0, ymax=plt.ylim()[1],color='black', linestyle='--')
+        plt.text(x=1200, y=plt.ylim()[1]*0.45, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
+
+        
         plt_finish("long / channel", "counts")
 
     lines, energies, line_err = make_calibration_data(data)
-    # res, (_, rsq) = curve_fit(linear, lines, energies)
-    # res, (_, rsq) = curve_fit(log, lines, energies)
-    # res, (_, rsq) = curve_fit(log, energies, lines, p0=[1,1,0.001])
     res, (_, rsq) = curve_fit(log, np.array(energies)/1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-10) , (np.inf, np.inf, 10)])
     print(res)
 
-    #for debugging
-    print("----------")
-    test = 4.2
-    print(str(test) + " MeV is channel:")
-    print(log(test, res[0],res[1],res[2]))
-    print("is reconverted in MeV")
-    print(inverse_log(log(test, res[0],res[1],res[2]), res[0],res[1],res[2]).real)
-    print("----------")
-    
-    # plt_errorbar(lines, energies, yerr=line_err)
-    # plt_errorbar(energies, lines, yerr=line_err)
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
     plt.xlim(left=0)
     # plt.xlim(right=65000)
     plt.xlim(right=10)
     plt.ylim(bottom=0)
     plt.ylim(top=70000)
-    # plt_func(linear, res, f"$R^2={round(rsq, 3)}$")
     plt_func(log, res, f"$R^2={round(rsq, 3)}$")
-    # plt_finish("long / channel", "$E$ / eV")
-    plt_finish("$E$ / eV", "long / channel", )
+    plt_finish("$E$ / MeV", "long / channel", )
 
 
 if __name__ == "__main__":
