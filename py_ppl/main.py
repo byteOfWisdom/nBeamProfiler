@@ -112,11 +112,12 @@ def main():
         post_process.fit_beam(result)
 
     # previews:
-    # - 1: 2D-Heatmaps
-    # - 2: 3D-Contourplots
-    # - 3: 2D-Heatmaps and 3D-Countourplots
-    # - 4: Scan-Count Plot, PSD-Plot, 2D-Heatmaps and 3D-Countourplots
-    # - 5: 
+    # - 1: Show 2D-Heatmaps
+    # - 2: Show 3D-Contourplots
+    # - 3: Show 2D-Heatmaps and 3D-Countourplots
+    # - 4: Show Scan-Count Plot, PSD-Plot, 2D-Heatmaps and 3D-Countourplots
+    # - 5: Export Scan-Count Plot and PSD-Plot
+    # - 6: Export Beamscans
     if args['preview'] == 4:
         visualization.plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args)
     if args['preview'] == 1 or args['preview'] == 3 or args['preview'] == 4:
@@ -126,7 +127,8 @@ def main():
         visualization.plot_b(data, result, reconvolved_norm, diff1, diff2, args)
     if args['preview'] == 5:
             visualization.plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args, PGF=False)
-
+    if args['preview'] == 6:
+            visualization.plot_e(data, result, reconvolved_norm, args, PGF=False)
 
 if __name__ == "__main__":
     main()

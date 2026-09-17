@@ -6,6 +6,22 @@ from sigfig import round         #import an easy way of scientific rounding
 import scipy
 import plot_export as export
 
+#set path the where executing script is
+scriptpath = export.Scriptpath(__file__)
+
+# scanning length of the zaber-stage
+scanning_length_x = 30 #cm
+scanning_length_y = 30 #cm
+
+# Parameter and functions to convert channel numbers in energy
+a = 3.20180374e+04      #fitparameter from energy_calibration.py
+b = 5.02109330e-01
+c = -1.00000000e+01
+def MeV2channel_log(x):
+    return a * np.log(b*x+1) + c*x # fitfunction from https://doi.org/10.1016/j.nima.2017.04.028
+
+def channel2MeV_log(x):
+    return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real #thanks wolfram alpha!
 
 def matrix(arr):
     xdim = max(arr[0])
@@ -16,7 +32,7 @@ def matrix(arr):
     return res
 
 
-# Define the 2D super-Gaussian model
+# Define the 2D super-Gaussian model for fitting and plotting
 def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n, offset):
     x, y = coords
     # Ensure sigma values and exponent are positive
@@ -27,6 +43,17 @@ def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n, offset):
     exponent = -( ( (x - x0)/(2*sigma_x) )  **2   + ( (y - y0)/(2*sigma_y) )**2 ) ** n       #elliptical gaussian beam, thanks wikipedia :)
     return (A * np.exp(exponent) + offset).ravel()  #with offset
     # return (A * np.exp(exponent)).ravel()  #without offset
+
+
+#Define the 1D super-Gaussian model for projection plotting
+def super_gaussian_1d(x, A, x0, sigma, n, offset):
+    # Ensure sigma values and exponent are positive
+    sigma = abs(sigma)
+    n = abs(n)
+    # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n)              #rectangular gaussian beam 
+    exponent = -( ( (x - x0)/(2*sigma) )  **2 ) ** n                                         #elliptical gaussian beam, thanks wikipedia :)
+    return (A * np.exp(exponent) + offset)
+
 
 #Plots for Preview 1 - 2D-Heatmaps
 def plot_a(data, scint, reconvolved_norm, result, args):
@@ -39,15 +66,6 @@ def plot_a(data, scint, reconvolved_norm, result, args):
     # POINT SPREAD FUNCTION of the scintillator
     ax[0, 1].title.set_text("Scintillator - Point Spread Function")
     ax[0, 1].imshow(scint)
-
-    # PULSE SHAPE DISCRIMINATION plot
-    # ax[1, 0].title.set_text("Pulse Shape Discrimination")
-    # ax[1, 0].hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
-    # ax[1, 0].axhline(y=args['n_gamma_cut'], color='black', linestyle='-')
-    # ax[1, 0].text(60000, args['n_gamma_cut']+0.02, 'neutrons', fontsize=12, color='black', ha='center', va='center')
-    # ax[1, 0].text(60000, args['n_gamma_cut']-0.02, 'gammas', fontsize=12, color='black', ha='center', va='center')
-    # ax[1, 0].set_xlabel("long")
-    # ax[1, 0].set_ylabel("(long-short)/long")
 
     # Re-CONVOLVED DATA - Heatmap
     ax[1, 0].title.set_text("Re-convolved Data - Heatmap")
@@ -62,11 +80,9 @@ def plot_a(data, scint, reconvolved_norm, result, args):
     # plt.savefig("preview1.pdf", format="pdf") 
     plt.show()
 
+
 #Plots for Preview 2
 def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
-    # some variables for calculating stuff
-    scanning_length_x = 30 #cm
-    scanning_length_y = 30 #cm
 
     # create meshgrid with number of lines
     x_lines, y_lines = np.meshgrid( np.arange(np.max(data[0]) + 1),
@@ -218,16 +234,6 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
 
 
     # 1D-PROJECTION of beam profile
-    #Define the 1D super-Gaussian model for plotting
-    def super_gaussian_1d(x, A, x0, sigma_x, n, offset):
-        # Ensure sigma values and exponent are positive
-        sigma_x = abs(sigma_x)
-        # sigma_y = abs(sigma_y)
-        n = abs(n)
-        # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n)              #rectangular gaussian beam 
-        exponent = -( ( (x - x0)/(2*sigma_x) )  **2 ) ** n 
-        return (A * np.exp(exponent) + offset)
-    
     ax = fig.add_subplot(2,3,5)
     ax.set_title("Supergaussian in x-direction")
     # ax.contourf(x_units, Z_true, y_units, cmap='rainbow') #projection of the x-axis
@@ -236,11 +242,7 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     ax.plot(x_plot_supergaus,super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), label="Fitted Beam Profile")
     # ax.plot(x_plot_supergaus,super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, 1.1955, 2.235, offset_fit), label="Simulated Beam Profile")
     # plt.vlines(x=[-sigma_x_fit, +sigma_x_fit], ymin=0, ymax=super_gaussian_1d(sigma_x_fit,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), colors='red', linestyles='dashed', label='Sigma width')
-    
-    target_percent99 = 0.99
-    target_percent90 = 0.90
-    target_percent10 = 0.10
-    target_percent01 = 0.01
+
 
     def draw_percent_lines(target_percent):
         indices = np.where(np.isclose(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), target_percent*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit)), rtol=1e-3))[0]
@@ -255,10 +257,11 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
                     # linestyles='dashed', colors=['green'], label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
                     linestyles='dashed', label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
     
-    # draw_percent_lines(target_percent99)
-    draw_percent_lines(target_percent90)
-    draw_percent_lines(target_percent10)
-    # draw_percent_lines(target_percent01)
+    #draw horizontal lines at %-level from amplitude
+    # draw_percent_lines(0.99)
+    draw_percent_lines(0.90)
+    draw_percent_lines(0.10)
+    # draw_percent_lines(0.1)
 
     ax.grid()
     ax.set_xlabel("x / cm")
@@ -312,6 +315,11 @@ def plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args)
     ax[1].text(60000, args['n_gamma_cut']-0.02, 'gammas', fontsize=12, color='black', ha='center', va='center')
     ax[1].set_xlabel("long")
     ax[1].set_ylabel("(long-short)/long")
+
+    # add a second x-axis with channels converted into Energy
+    secax = ax[1].secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
+    secax.set_xlabel("$E$ / MeV")
+
     fig.tight_layout()
     # Save the plot as a PDF  
     # plt.savefig("preview4.pdf", format="pdf") 
@@ -320,18 +328,11 @@ def plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args)
 #Plot for Preview 5 - export Scan-Count Plot and PSD-Plot
 def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args, PGF=False):
 
-    #set path the where script is
-    scriptpath  = export.Scriptpath(__file__)
-
     if PGF == True:
         export.PGF_plots() #save as PGF otherwise PDF
 
     # SCAN COUNT plot
     fig = plt.figure(figsize=(6, 3), dpi=500)
-    # fig, ax = fig, ax = plt.subplots(1, 1, figsize=(6, 3), dpi=500)
-    # print(timing_pulses*6.25e-8)
-    # plt.figure(figsize=(16, 8), dpi=50)
-    # ax.title.set_text("Neutron Counts during Scan")
     plt.plot(0.5 * (time_edges[1:] + time_edges[:-1])*6.25e-8, neutron_hits, label='neutron count')
     plt.vlines(x=timing_pulses[0]*6.25e-8, ymin=-500, ymax=0,color='red', linestyle='-', label='timing pulses') #sneaky hack to get the label into legend
     for xc in timing_pulses*6.25e-8:
@@ -345,10 +346,8 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
     plt.show()
 
     # PULSE SHAPE DISCRIMINATION plot
-    # fig, ax = plt.subplots(1, 1, figsize=(6, 3), dpi=500)
     fig = plt.figure(figsize=(6, 3), dpi=500)
     ax = fig.add_subplot(111)
-    # ax.title.set_text("Pulse Shape Discrimination")
     ax.hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
     ax.axhline(y=args['n_gamma_cut'], color='black', linewidth=1 ,linestyle='--')
     ax.text(60000, args['n_gamma_cut']+0.03, 'neutrons', fontsize=8, color='black', ha='center', va='center')
@@ -356,32 +355,221 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
     ax.set_xlabel("long / channel ")
     ax.set_ylabel("$Q$")
 
-    # secondary axis in kev
-    def channel2MeV_lin(x): #channel into Mev
-        a = 1/15000  # this value is guessed for now
-        b = 0         # this value is guessed for now
-        return a*x + b
-
-    def MeV2channel_lin(x):
-        a = 1/15000 # this value is guessed for now
-        b = 0         # this value is guessed for now
-        return (x - b) / a
-
-    def MeV2channel_log(x):
-        a = 3.20180374e+04  
-        b = 5.02109330e-01      #from Mev -> channel
-        c = -1.00000000e+01
-        return a * np.log(b*x+1) + c*x
-    
-    def channel2MeV_log(x):
-        a = 3.20180374e+04  
-        b = 5.02109330e-01      #from channel -> Mev
-        c = -1.00000000e+01
-        return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real #thanks wolfram alpha!
-
+    # add a second x-axis with channels converted into Energy
     secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
     secax.set_xlabel("$E$ / MeV")
 
     plt.tight_layout()
     export.Save_Plot(scriptpath + "plots/", "PSD_plot")
+    plt.show()
+
+
+#Plot for Preview 6 - export Beamscans
+def plot_e(data, result, reconvolved_norm, args, PGF=False):
+
+    if PGF == True:
+        export.PGF_plots() #save as PGF otherwise PDF
+
+    # create meshgrid with number of lines
+    x_lines, y_lines = np.meshgrid( np.arange(np.max(data[0]) + 1),
+                                    np.arange(np.max(data[1]) + 1))
+    
+    # create meshgrid with number of lines lines converted to physical distances
+    x_units, y_units = np.meshgrid( np.linspace(0,scanning_length_x,np.max(data[0]) + 1), 
+                                    np.linspace(0,scanning_length_y,np.max(data[1]) + 1)) 
+
+    # fit supergaussian to data
+    popt, pcov = curve_fit(
+                            super_gaussian_2d
+                            ,(x_units, y_units) # fit data to axis in physical units
+                            ,result.ravel()
+                            # ,sigma = np.sqrt(result.ravel())
+                            # ,absolute_sigma = True
+                            ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]  # initial_guess for fitting parameters
+                            ,maxfev=99999999
+                            ,bounds=(
+                                    [0, 5, 5, 0.1, 0.1, 1,0],  # lower bounds of fitting parameters
+                                    [1, scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf]    # upper bounds of fitting parameters
+                                    )
+                            )
+    
+    # Extract fitted parameters into variables for better reading
+    A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit = popt
+    # calculate fitted parameters-error
+    A_error, x0_error, y0_error, sigma_x_error, sigma_y_error, n_error, offset_error = np.sqrt(np.diag(pcov))
+
+    # print fitted parameters to console
+    print("------------------------------------")
+    print("Fitted parameters for Supergaussian:")
+    print(
+    'A=' + str(round(A_fit, A_error, sep='external_brackets'))+', ' + 'offset=' + str(round(offset_fit, offset_error, sep='external_brackets'))+', \n'
+    'x0=' + str(round(x0_fit, x0_error, sep='external_brackets'))+'cm, ' + 'y0=' + str(round(y0_fit, y0_error, sep='external_brackets'))+'cm, \n'
+    'sigma_x=' + str(round(sigma_x_fit, sigma_x_error, sep='external_brackets'))+'cm, ' + 'sigma_y=' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets'))+'cm, \n'
+    'n=' + str(round(n_fit, n_error, sep='external_brackets'))
+        )
+    print("------------------------------------")
+    # print("Latex-Line for tables:")
+    # print(str(round(sigma_x_fit, sigma_x_error, sep='external_brackets')) + ' & ' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets')) + ' & ' +
+    #       str(round(n_fit, n_error, sep='external_brackets')) + ' & ' + str(round(A_fit, A_error, sep='external_brackets')) + ' & ' + 
+    #       str(round(x0_fit, x0_error, sep='external_brackets')) + ' & ' + str(round(y0_fit, y0_error, sep='external_brackets')) + ' & ' +
+    #       str(round(offset_fit, offset_error, sep='external_brackets')) + ' \\\\'
+    #      )
+    # print("------------------------------------")
+    
+    # use the fitted parameters in supergaus function to calculate z-values for plotting
+    Z_true = super_gaussian_2d((x_units, y_units), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).reshape(np.max(data[1]) + 1, np.max(data[1]) + 1)
+
+    # set axis boundaries to 6 sigma after fitting for nice plotting
+    lower_x = x0_fit-6*sigma_x_fit  #lower x value in cm for plotting
+    upper_x = x0_fit+6*sigma_x_fit  #upper x value in cm for plotting
+    lower_y = y0_fit-6*sigma_y_fit  #lower x value in cm for plotting
+    upper_y = y0_fit+6*sigma_y_fit  #upper x value in cm for plotting
+
+    # clean data from zeros because we assume error=sqrt(data2) and divide by this when doing red. chi2
+    def clean_and_chi2(data1,data2): #data2 = the one with error on its values
+        data1_clean = []
+        data2_clean = []
+        for i in range(len(data1)):
+            for j in range(len(data1[0])):
+                if data1[i][j] > 0 and data2[i][j]>0:
+                    data1_clean += [data1[i][j]]
+                    data2_clean += [data2[i][j]]
+
+        data1_clean = np.asarray(data1_clean).flatten()
+        data2_clean = np.asarray(data2_clean).flatten()
+        
+        #calculate reduced chi2
+        chi2 = np.sum( (data1_clean - data2_clean)**2 / np.sqrt(data2_clean)**2 ) 
+        dofs = len(data1_clean) - len(popt)
+        red_chi = chi2/dofs
+        return(red_chi,chi2)
+    
+    red_chi_SG, chi2_SG = clean_and_chi2(Z_true,result)
+    print("Supergaussian red. chi2 is: " + str(round(red_chi_SG,2)))
+
+    red_chi_RawReConv, chi2_RawReConv = clean_and_chi2(matrix(data),reconvolved_norm)
+    print("Raw-ReConvolved chi2 is: " + str(round(chi2_RawReConv,2)))
+
+
+    fig = plt.figure(figsize=plt.figaspect(0.5))
+    
+    #RAW DATA as contour plot
+    ax = fig.add_subplot(2, 3, 1, projection='3d')
+    ax.title.set_text("Raw Data - Countour Plot")
+    ax.view_init(elev=45, azim=-45, roll=0)
+    ax.contour(x_lines, y_lines, matrix(data), levels=100, axlim_clip=True)
+    ax.contourf(x_lines, y_lines, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/scanning_length_x, levels=300, cmap='rainbow', axlim_clip=True)
+    ax.contourf(x_lines, y_lines, matrix(data), zdir='y', offset=upper_y*(np.max(data[0])+1)/scanning_length_y, levels=300, cmap='rainbow', axlim_clip=True)
+    ax.set_zlim(0,1.1)
+    ax.set_xlim(lower_x*(np.max(data[0])+1)/scanning_length_x, upper_x*(np.max(data[0])+1)/scanning_length_x) #x-axis in lines instead of cm
+    ax.set_ylim(lower_y*(np.max(data[0])+1)/scanning_length_y, upper_y*(np.max(data[0])+1)/scanning_length_y) #y-axis in lines instead of cm
+    ax.set_xlabel("x / lines")
+    ax.set_ylabel("y / lines")
+    ax.set_zlabel("normalised intensity")
+
+    #DECONVOLVED DATA as contour plot
+    ax = fig.add_subplot(2, 3, 2, projection='3d')
+    ax.title.set_text("Deconvolved Data - Contour Plot")
+    ax.view_init(elev=45, azim=-45, roll=0)
+    ax.contour(x_units, y_units, result, levels=100, axlim_clip=True)
+    ax.contourf(x_units, y_units, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
+    ax.contourf(x_units, y_units, result, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
+    ax.set_zlim(0,1.1)
+    ax.set_xlim(lower_x,upper_x)
+    ax.set_ylim(lower_y,upper_y)
+    ax.set_xlabel("x / cm")
+    ax.set_ylabel("y / cm")
+    ax.set_zlabel("normalised intensity")
+
+    #RE-CONVOLCVED DATA as contour plot
+    ax = fig.add_subplot(2, 3, 3, projection='3d')
+    ax.title.set_text("refolded data")
+    ax.view_init(elev=45, azim=-45, roll=0)
+    ax.contour(x_units, y_units, reconvolved_norm, levels=300, axlim_clip=True)
+    ax.contourf(x_units, y_units, reconvolved_norm, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
+    ax.contourf(x_units, y_units, reconvolved_norm, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
+    ax.set_zlim(0,1.1)
+    ax.set_xlim(lower_x,upper_x)
+    ax.set_ylim(lower_y,upper_y)
+    ax.set_xlabel("x / cm")
+    ax.set_ylabel("y / cm")
+    ax.set_zlabel("normalised intensity")
+
+    #FITTED 2D-ELLIPTICAL SUPERGAUSSIAN as contour plot
+    ax = fig.add_subplot(2, 3, 4, projection='3d')
+    ax.title.set_text("fitted data")
+    ax.view_init(elev=45, azim=-45, roll=0)
+    ax.contour(x_units, y_units, Z_true, levels=300, axlim_clip=True)
+    ax.contourf(x_units, y_units, Z_true, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
+    ax.contourf(x_units, y_units, Z_true, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
+
+    # fit parameters as labels in legend
+    ax.plot([],[],' ', label='$\\sigma_x=$'+round(sigma_x_fit, sigma_x_error, sep='external_brackets')+'cm' )
+    ax.plot([],[],' ', label='$\\sigma_y=$'+round(sigma_y_fit, sigma_y_error, sep='external_brackets')+'cm' )
+    ax.plot([],[],' ', label='$n=$'+round(n_fit, n_error, sep='external_brackets') )
+    # ax.plot([],[],' ', label=f'$red. \\chi^2=${red_chi_SG:.3f}' )
+
+    # Set legend for ax and labels
+    ax.legend(loc='best',handlelength=0, handletextpad=0)
+    ax.set_zlim(0,1.1)
+    ax.set_xlim(lower_x,upper_x)
+    ax.set_ylim(lower_y,upper_y)
+    ax.set_xlabel("x / cm")
+    ax.set_ylabel("y / cm")
+    ax.set_zlabel("normalised intensity")
+
+
+    # 1D-PROJECTION of beam profile
+    ax = fig.add_subplot(2,3,5)
+    ax.set_title("Supergaussian in x-direction")
+    # ax.contourf(x_units, Z_true, y_units, cmap='rainbow') #projection of the x-axis
+    ax.contourf(x_units, result, y_units, cmap='rainbow', levels=50) #projection of the x-axis
+    x_plot_supergaus = np.linspace(x0_fit-6*sigma_x_fit, x0_fit+6*sigma_x_fit, 100000)
+    ax.plot(x_plot_supergaus,super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), label="Fitted Beam Profile")
+    # ax.plot(x_plot_supergaus,super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, 1.1955, 2.235, offset_fit), label="Simulated Beam Profile")
+    # plt.vlines(x=[-sigma_x_fit, +sigma_x_fit], ymin=0, ymax=super_gaussian_1d(sigma_x_fit,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), colors='red', linestyles='dashed', label='Sigma width')
+    
+
+    def draw_percent_lines(target_percent):
+        indices = np.where(np.isclose(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), target_percent*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit)), rtol=1e-3))[0]
+        # print(str(target_percent) + " percent is reached at indices: ")
+        # print(indices)
+        # print(super_gaussian_1d(x_plot_supergaus[indices[0]],A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit))
+
+        target_width = -x_plot_supergaus[indices[0]] + x_plot_supergaus[indices[-1]]
+        plt.hlines(y=[target_percent*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit))],
+                    xmin=x_plot_supergaus[indices[0]],
+                    xmax=x_plot_supergaus[indices[-1]],
+                    # linestyles='dashed', colors=['green'], label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
+                    linestyles='dashed', label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
+
+    #draw horizontal lines at %-level from amplitude
+    # draw_percent_lines(0.99)
+    draw_percent_lines(0.90)
+    draw_percent_lines(0.10)
+    # draw_percent_lines(0.1)
+
+    ax.grid()
+    ax.set_xlabel("x / cm")
+    ax.set_ylabel("normalized intensity")
+    ax.set_xlim(x0_fit-6*sigma_x_fit, x0_fit+6*sigma_x_fit)
+    ax.set_ylim(0, 1.1*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit)))
+    ax.legend(loc='best')
+
+    ax = fig.add_subplot(2,3,6)
+    ax.set_title("Supergaussian in y-direction")
+    # ax.contourf(y_units, Z_true, x_units, cmap='rainbow') #projection of the y-axis
+    ax.contourf(y_units, result, x_units, cmap='rainbow', levels=50) #projection of the y-axis
+    y_plot_supergaus = np.linspace(y0_fit-6*sigma_y_fit, y0_fit+6*sigma_y_fit, 100)
+    ax.plot(y_plot_supergaus,super_gaussian_1d(y_plot_supergaus,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit), label="Fitted Beam Profile")
+    # plt.vlines(x=[-sigma_y_fit, +sigma_y_fit], ymin=0, ymax=super_gaussian_1d(sigma_y_fit,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit), colors='red', linestyles='dashed', label='Sigma width')
+    ax.grid()
+    ax.set_xlabel("y / cm")
+    ax.set_ylabel("normalized intensity")
+    ax.set_xlim(y0_fit-6*sigma_y_fit, y0_fit+6*sigma_y_fit)
+    ax.set_ylim(0, 1.1*np.max(super_gaussian_1d(y_plot_supergaus,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit)))
+    ax.legend(loc='best')
+
+    plt.tight_layout()
+    export.Save_Plot(scriptpath + "plots/", "Beam_plot")
     plt.show()
