@@ -53,7 +53,7 @@ def plt_errorbar(xval, yval, xerr=None, yerr=None, label=None, marker=None, alph
     plt.errorbar(xval, yval, xerr=xerr, yerr=yerr, label=label, **params)
 
 
-def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, bounds=(-np.inf, np.inf)):
+def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, bounds=(-np.inf, np.inf), ftol=1e-8, xtol=1e-8, gtol=1e-8):
     if some(y_errors):
         y_errors[y_errors == 0] = np.nan
 
@@ -62,7 +62,7 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, b
         p0 = np.ones(argc)
 
     func = np.vectorize(func)
-    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds)
+    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds, ftol=ftol, xtol=xtol, gtol=gtol)
     std_devs_cf = np.sqrt(np.diag(cov))
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
     return params_cf, (std_devs_cf, goodness_cf)
@@ -118,9 +118,9 @@ gamma_line_db = { #these are the gamma energies of the isotopes in eV
 }
 
 initial_guess_db = {
-    "Na": [4.5e3, 15.0e3],
-    "Cs":[8e3],# 20e3],
-    "AmBe": [37e3]
+    "Na": [4.1e3, 14.7e3],
+    "Cs":[6.1e3],# 20e3],
+    "AmBe": [36.05e3]
 }
 
 
@@ -158,20 +158,21 @@ def fit_edges(bin_centers, hist, n, x0_guesses):
     p0 = []
     for guess in x0_guesses:
         guess_bin = np.argmin(np.abs(bin_centers - guess))
-        p0 += [hist[guess_bin], bin_centers[guess_bin], 1000, 0, 1]
+        p0 += [hist[guess_bin], bin_centers[guess_bin], 1000, 0, 1] # a, x0, sigma, b, c
     start = np.where(hist[1:] == max(hist[1:]))[0][0]
     f = np.vectorize(make_multi_edge(n))
     start = max(start, np.argmin(np.abs(bin_centers - (min(x0_guesses) - 5e3))))
     # stop = np.argmin(np.abs(bin_centers - (x0_guesses[-1]))) + 100
     stop = np.argmin(np.abs(bin_centers - (max(x0_guesses) + 5e3)))
-    res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999)#, y_errors=np.sqrt(hist[start:stop]))
+    res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, y_errors=np.sqrt(hist[start:stop]), ftol=1e-8, xtol=1e-8, gtol=1e-8)
+    print(res)
     return res, (err, rsq), (bin_centers[start], bin_centers[stop])
 
 
 class dataset_analysis:
     def __init__(self, data, isotope=""):
         # data = data_loading.load_dataset(fname)
-        print(data.long)
+        # print(data.long)
         self.hist, bins = np.histogram(data.long, bins=config.long_bins)
         self.bin_centers = 0.5 * (bins[:-1] + bins[1:])
         self.isotope = isotope
@@ -234,7 +235,10 @@ def main():
     plot_single = "single" in argv
 
     data = []
-    print(calibration_data.ls())
+    # print(calibration_data.ls())
+
+    # plt.figure(figsize=(6, 3), dpi=500)
+
     for fname in calibration_data.ls():
         if fname == 'Szinti_Calib/Cs137_2.csv':
             continue
@@ -253,9 +257,7 @@ def main():
         # n gamma discrimination (but go for the gammas!!)
         ds = ds.subset(ds.y() < 0.4)
 
-        # plt.figure(figsize=(6, 3), dpi=500)
-        # plt.rcParams["figure.figsize"] = (16,3)
-        ax = plt.subplot(111)
+        
 
         ana = dataset_analysis(ds, elem)
         ana.fit()
@@ -267,32 +269,33 @@ def main():
         # plt.xlim(right = 65000)
 
         #secondary x-axis in MeV
+        #fitparamter from the next step of the calibration
+        a = 3.20180374e+04  
+        b = 5.02109330e-01     
+        c = -1.00000000e+01
+
         def MeV2channel_log(x):
-            a = 3.20180374e+04  
-            b = 5.02109330e-01      #from Mev -> channel
-            c = -1.00000000e+01
             return a * np.log(b*x+1) + c*x
         
         def channel2MeV_log(x):
-            a = 3.20180374e+04  
-            b = 5.02109330e-01      #from channel -> Mev
-            c = -1.00000000e+01
             return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real #thanks wolfram alpha!
 
+        ax = plt.subplot(111)
         secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
         secax.set_xlabel("$E$ / MeV")
 
         #dashed line to indicate the trigger-threshold. eyeballed to be at channel 2000 for now
         cutoff = round(channel2MeV_log(2000)*1e3,4)
         plt.vlines(x=2000, ymin=0, ymax=plt.ylim()[1],color='black', linestyle='--')
-        plt.text(x=1200, y=plt.ylim()[1]*0.45, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
+        plt.text(x=1200, y=plt.ylim()[1]*0.25, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
 
-        
         plt_finish("long / channel", "counts")
+
+    # plt.figure(figsize=(6, 3), dpi=500)
 
     lines, energies, line_err = make_calibration_data(data)
     res, (_, rsq) = curve_fit(log, np.array(energies)/1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-10) , (np.inf, np.inf, 10)])
-    print(res)
+    # print(res) # print fitparamter for energy calibration
 
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
     plt.xlim(left=0)
