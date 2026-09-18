@@ -494,10 +494,12 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     ax.set_xlabel("x / cm")
     ax.set_ylabel("y / cm")
     ax.set_zlabel("normalised intensity")
+    plt.show()
 
     #FITTED 2D-ELLIPTICAL SUPERGAUSSIAN as contour plot
-    ax = fig.add_subplot(2, 3, 4, projection='3d')
-    ax.title.set_text("fitted data")
+    fig = plt.figure(figsize=(4, 3), dpi=500)
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    # ax.title.set_text("fitted data")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_units, y_units, Z_true, levels=300, axlim_clip=True)
     ax.contourf(x_units, y_units, Z_true, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
@@ -510,18 +512,20 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     # ax.plot([],[],' ', label=f'$red. \\chi^2=${red_chi_SG:.3f}' )
 
     # Set legend for ax and labels
-    ax.legend(loc='best',handlelength=0, handletextpad=0)
+    ax.legend(loc='best',handlelength=0, handletextpad=0, fontsize=8)
     ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x,upper_x)
     ax.set_ylim(lower_y,upper_y)
     ax.set_xlabel("x / cm")
     ax.set_ylabel("y / cm")
     ax.set_zlabel("normalised intensity")
+    # plt.tight_layout()
+    export.Save_Plot(scriptpath + "plots/", "Beam_plot_Fitted")
     plt.show()
 
 
     # 1D-PROJECTION of beam profile - x-projection
-    fig = plt.figure(figsize=(6, 6), dpi=500)
+    fig = plt.figure(figsize=(4, 3), dpi=500)
     # ax = fig.add_subplot(2,3,5)
     # ax.set_title("Supergaussian in x-direction")
     # ax.contourf(x_units, Z_true, y_units, cmap='rainbow') #projection of the x-axis
@@ -547,22 +551,22 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
 
     #draw horizontal lines at %-level from amplitude
     # draw_percent_lines(0.99)
-    draw_percent_lines(0.90)
-    draw_percent_lines(0.10)
+    # draw_percent_lines(0.90)
+    # draw_percent_lines(0.10)
     # draw_percent_lines(0.1)
 
     plt.grid()
     plt.xlabel("$x$ / cm")
     plt.ylabel("normalized intensity")
     plt.xlim((x0_fit-6*sigma_x_fit) -x0_fit, (x0_fit+6*sigma_x_fit) -x0_fit)
-    plt.ylim(0, 1.1*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit)))
-    plt.legend(loc='best')
+    plt.ylim(0, 1.2*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit)))
+    plt.legend(loc='upper right')
     plt.tight_layout()
     export.Save_Plot(scriptpath + "plots/", "Beam_plot_x-projection")
     plt.show()
 
     # 1D-PROJECTION of beam profile - y-projection
-    fig = plt.figure(figsize=(6, 6), dpi=500)
+    fig = plt.figure(figsize=(4, 3), dpi=500)
     # ax = fig.add_subplot(2,3,6)
     # ax.set_title("Supergaussian in y-direction")
     # ax.contourf(y_units, Z_true, x_units, cmap='rainbow') #projection of the y-axis
@@ -574,8 +578,8 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     plt.xlabel("$y$ / cm")
     plt.ylabel("normalized intensity")
     plt.xlim((y0_fit-6*sigma_y_fit) -y0_fit, (y0_fit+6*sigma_y_fit) -y0_fit)
-    plt.ylim(0, 1.1*np.max(super_gaussian_1d(y_plot_supergaus,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit)))
-    plt.legend(loc='best')
+    plt.ylim(0, 1.2*np.max(super_gaussian_1d(y_plot_supergaus,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit)))
+    plt.legend(loc='upper right')
     plt.tight_layout()
     export.Save_Plot(scriptpath + "plots/", "Beam_plot_y-projection")
     plt.show()
