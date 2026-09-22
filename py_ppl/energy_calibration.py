@@ -4,12 +4,10 @@ import scipy as sp
 from matplotlib import pyplot as plt
 from sys import argv
 import inspect
-# import std
 import numba
 import scipy
 import sciebo_fetch
-# from sigfig import round
-import iminuit
+from odrpack import odr_fit as odr_fit_raw
 
 error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
 
@@ -68,39 +66,30 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, b
     return params_cf, (std_devs_cf, goodness_cf)
 
 
-def im_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, bounds=(-np.inf, np.inf), ftol=1e-8, xtol=1e-8, gtol=1e-8):
-    if some(y_errors):
-        y_errors[y_errors == 0] = np.nan
+def odr_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, x_errors=None, bounds=None, ftol=1e-8, xtol=1e-8, gtol=1e-8):
+    # x_weight = np.ones_like(x_values)
+    # y_weight = np.ones_like(y_values)
+    # if some(x_errors):
+    #     x_weight[x_errors != 0] = 1 / np.abs(x_errors[x_errors != 0])
+    #     x_weight[x_errors == 0] = np.max(x_weight)
+    # if some(y_errors):
+    #     y_weight[y_errors != 0] = 1 / np.abs(y_errors[y_errors != 0])
+    #     y_weight[y_errors == 0] = np.max(y_weight)
 
-    argc = len(str(inspect.signature(func)).split()[1:])
-    if none(p0):
-        p0 = np.ones(argc)
+    x_weight = np.exp(-np.abs(x_errors)) if some(x_errors) else None
+    y_weight = np.exp(-np.abs(y_errors)) if some(y_errors) else None
 
-    func = np.vectorize(func)
-    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds, ftol=ftol, xtol=xtol, gtol=gtol, verbose=2)
-    std_devs_cf = np.sqrt(np.diag(cov))
-    goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
-    return params_cf, (std_devs_cf, goodness_cf)
-
-
-def odr_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None, x_errors=None):
-    if some(x_errors):
-        x_errors[x_errors == 0] = np.nan
-    if some(y_errors):
-        y_errors[y_errors == 0] = np.nan
-    data = scipy.odr.RealData(x_values, y_values, x_errors, y_errors)
     argc = len(str(inspect.signature(func)).split()[1:])
     if none(p0):
         p0 = np.ones(argc)
     else:
         argc = len(p0)
-    func = np.vectorize(func)
-    model = scipy.odr.Model(lambda B, t: func(t, *B[:argc]))
-    odr_run = scipy.odr.ODR(data, model, beta0=p0, maxit=maxfev)
-    odr_run.run()
 
-    params_odr = odr_run.output.beta
-    std_devs_odr = odr_run.output.sd_beta
+    def func_odr(t, B): return func(t, *B)
+    odr_run = odr_fit_raw(func_odr, x_values, y_values, beta0=p0, weight_x=x_weight, weight_y=y_weight, bounds=bounds, maxit=maxfev)
+
+    params_odr = odr_run.beta
+    std_devs_odr = odr_run.sd_beta
 
     goodness_odr = goodness_of_fit(y_values, func(x_values, *params_odr))
 
