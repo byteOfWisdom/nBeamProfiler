@@ -67,17 +67,16 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, b
 
 
 def odr_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, x_errors=None, bounds=None, ftol=1e-8, xtol=1e-8, gtol=1e-8):
-    # x_weight = np.ones_like(x_values)
-    # y_weight = np.ones_like(y_values)
-    # if some(x_errors):
-    #     x_weight[x_errors != 0] = 1 / np.abs(x_errors[x_errors != 0])
-    #     x_weight[x_errors == 0] = np.max(x_weight)
-    # if some(y_errors):
-    #     y_weight[y_errors != 0] = 1 / np.abs(y_errors[y_errors != 0])
-    #     y_weight[y_errors == 0] = np.max(y_weight)
-
-    x_weight = np.exp(-np.abs(x_errors)) if some(x_errors) else None
-    y_weight = np.exp(-np.abs(y_errors)) if some(y_errors) else None
+    x_weight = np.ones_like(x_values, dtype=np.float64)
+    y_weight = np.ones_like(y_values, dtype=np.float64)
+    if some(x_errors):
+        x_weight[x_errors != 0.] = x_errors[x_errors != 0.] ** (-2.)
+        x_weight = x_weight / np.max(x_weight)
+        x_weight[x_errors == 0.] = 1.
+    if some(y_errors):
+        y_weight[y_errors != 0.] = y_errors[y_errors != 0.] ** (-2.)
+        y_weight = y_weight / np.max(y_weight)
+        y_weight[y_errors == 0.] = 1.
 
     argc = len(str(inspect.signature(func)).split()[1:])
     if none(p0):
@@ -328,9 +327,8 @@ def main():
     lines, energies, line_err = make_calibration_data(data)
 
     # res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-100) , (np.inf, np.inf, 10)])
-    res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -50], y_errors=np.abs(line_err), bounds=[(0, 0, -500), (np.inf, np.inf, 10)])
-    # print(res) # print fitparamter for energy calibration
-    print(res)
+    res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -5], y_errors=np.abs(line_err), bounds=[(0, 0, -5000), (np.inf, np.inf, 100)])
+    print(res) # print fitparamter for energy calibration
 
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
     plt.xlim(left=0)
