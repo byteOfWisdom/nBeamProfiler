@@ -9,7 +9,7 @@ import numba
 import scipy
 import sciebo_fetch
 # from sigfig import round
-
+import iminuit
 
 error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
 
@@ -20,10 +20,10 @@ def linear(x, a, b):
 
 @numba.njit
 def log(x, a, b, c):
-    return a * np.log(b*x+1) + c*x
+    return a * np.log(b * x + 1) + c * x
 
 def inverse_log(x, a, b, c):
-    return (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) #thanks wolfram alpha!
+    return (a * b * scipy.special.lambertw(c * np.exp(c / (a * b) + x / a) / (a * b)) - c) / (b * c) #thanks wolfram alpha!
 
 
 def none(x):
@@ -62,7 +62,22 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, b
         p0 = np.ones(argc)
 
     func = np.vectorize(func)
-    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds, ftol=ftol, xtol=xtol, gtol=gtol)
+    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds, ftol=ftol, xtol=xtol, gtol=gtol, verbose=0)
+    std_devs_cf = np.sqrt(np.diag(cov))
+    goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
+    return params_cf, (std_devs_cf, goodness_cf)
+
+
+def im_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, bounds=(-np.inf, np.inf), ftol=1e-8, xtol=1e-8, gtol=1e-8):
+    if some(y_errors):
+        y_errors[y_errors == 0] = np.nan
+
+    argc = len(str(inspect.signature(func)).split()[1:])
+    if none(p0):
+        p0 = np.ones(argc)
+
+    func = np.vectorize(func)
+    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds, ftol=ftol, xtol=xtol, gtol=gtol, verbose=2)
     std_devs_cf = np.sqrt(np.diag(cov))
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
     return params_cf, (std_devs_cf, goodness_cf)
@@ -277,6 +292,8 @@ def main():
         long, short, time, channel, _ = np.genfromtxt(calibration_data.np_loadable(fname), delimiter=",", unpack=True)
 
         ds = data_loading.dataset(short, long, time, channel)
+        ds = ds.subset(ds.long > ds.short)
+        ds = ds.subset(ds.long > 0)
         # plt.cla()
         # plt.hist(ds.y(), 100, (0, 0.75))
         # plt.show()
@@ -301,27 +318,30 @@ def main():
         c = -1.00000000e+01
 
         def MeV2channel_log(x):
-            return a * np.log(b*x+1) + c*x
+            return a * np.log(b * x + 1) + c * x
         
         def channel2MeV_log(x):
-            return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real #thanks wolfram alpha!
+            return ((a * b * scipy.special.lambertw(c * np.exp(c / (a * b) + x / a) / (a * b)) - c) / (b * c)).real #thanks wolfram alpha!
 
         ax = plt.subplot(111)
         secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
         secax.set_xlabel("$E$ / MeV")
 
         #dashed line to indicate the trigger-threshold. eyeballed to be at channel 2000 for now
-        cutoff = round(channel2MeV_log(2000)*1e3,4)
+        cutoff = round(channel2MeV_log(2000) * 1e3, 4)
         plt.vlines(x=2000, ymin=0, ymax=plt.ylim()[1],color='black', linestyle='--')
-        plt.text(x=1200, y=plt.ylim()[1]*0.25, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
+        plt.text(x=1200, y=plt.ylim()[1] * 0.25, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
 
         plt_finish("long / channel", "counts")
 
     # plt.figure(figsize=(6, 3), dpi=500)
 
     lines, energies, line_err = make_calibration_data(data)
-    res, (_, rsq) = curve_fit(log, np.array(energies)/1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-10) , (np.inf, np.inf, 10)])
+
+    # res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-100) , (np.inf, np.inf, 10)])
+    res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -50], y_errors=np.abs(line_err), bounds=[(0, 0, -500), (np.inf, np.inf, 10)])
     # print(res) # print fitparamter for energy calibration
+    print(res)
 
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
     plt.xlim(left=0)
