@@ -8,7 +8,7 @@ import inspect
 import numba
 import scipy
 import sciebo_fetch
-from sigfig import round
+# from sigfig import round
 
 
 error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
@@ -66,6 +66,30 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, b
     std_devs_cf = np.sqrt(np.diag(cov))
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
     return params_cf, (std_devs_cf, goodness_cf)
+
+
+def odr_fit(func, x_values, y_values, p0=None, maxfev=1000, y_errors=None, x_errors=None):
+    if some(x_errors):
+        x_errors[x_errors == 0] = np.nan
+    if some(y_errors):
+        y_errors[y_errors == 0] = np.nan
+    data = scipy.odr.RealData(x_values, y_values, x_errors, y_errors)
+    argc = len(str(inspect.signature(func)).split()[1:])
+    if none(p0):
+        p0 = np.ones(argc)
+    else:
+        argc = len(p0)
+    func = np.vectorize(func)
+    model = scipy.odr.Model(lambda B, t: func(t, *B[:argc]))
+    odr_run = scipy.odr.ODR(data, model, beta0=p0, maxit=maxfev)
+    odr_run.run()
+
+    params_odr = odr_run.output.beta
+    std_devs_odr = odr_run.output.sd_beta
+
+    goodness_odr = goodness_of_fit(y_values, func(x_values, *params_odr))
+
+    return params_odr, (std_devs_odr, goodness_odr)
 
 
 def plt_finish(xlabel, ylabel, save_to=False):
@@ -164,7 +188,9 @@ def fit_edges(bin_centers, hist, n, x0_guesses):
     start = max(start, np.argmin(np.abs(bin_centers - (min(x0_guesses) - 5e3))))
     # stop = np.argmin(np.abs(bin_centers - (x0_guesses[-1]))) + 100
     stop = np.argmin(np.abs(bin_centers - (max(x0_guesses) + 5e3)))
-    res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, y_errors=np.sqrt(hist[start:stop]), ftol=1e-8, xtol=1e-8, gtol=1e-8)
+    # res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, y_errors=np.sqrt(hist[start:stop]), ftol=1e-8, xtol=1e-8, gtol=1e-8)
+    # res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, ftol=1e-8, xtol=1e-8, gtol=1e-8)
+    res, (err, rsq) = odr_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999, y_errors=np.sqrt(hist[start:stop]))
     print(res)
     return res, (err, rsq), (bin_centers[start], bin_centers[stop])
 
