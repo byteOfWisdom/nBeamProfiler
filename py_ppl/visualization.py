@@ -456,7 +456,7 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     #RAW DATA as contour plot
     fig = plt.figure(figsize=(4, 3), dpi=500)
     ax = fig.add_subplot(1, 1, 1, projection='3d')
-    ax.title.set_text("Raw Data - Countour Plot")
+    # ax.title.set_text("Raw Data - Countour Plot")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_lines, y_lines, matrix(data), levels=100, axlim_clip=True)
     ax.contourf(x_lines, y_lines, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/scanning_length_x, levels=300, cmap='rainbow', axlim_clip=True)
@@ -474,7 +474,7 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     #DECONVOLVED DATA as contour plot
     fig = plt.figure(figsize=(4, 3), dpi=500)
     ax = fig.add_subplot(1, 1, 1, projection='3d')
-    ax.title.set_text("Deconvolved Data - Contour Plot")
+    # ax.title.set_text("Deconvolved Data - Contour Plot")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_units, y_units, result, levels=100, axlim_clip=True)
     ax.contourf(x_units, y_units, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
@@ -492,7 +492,7 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     #RE-CONVOLCVED DATA as contour plot
     fig = plt.figure(figsize=(4, 3), dpi=500)
     ax = fig.add_subplot(1, 1, 1, projection='3d')
-    ax.title.set_text("refolded data")
+    # ax.title.set_text("refolded data")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_units, y_units, reconvolved_norm, levels=300, axlim_clip=True)
     ax.contourf(x_units, y_units, reconvolved_norm, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
