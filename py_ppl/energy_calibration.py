@@ -4,12 +4,10 @@ import scipy as sp
 from matplotlib import pyplot as plt
 from sys import argv
 import inspect
-# import std
 import numba
 import scipy
 import sciebo_fetch
-from sigfig import round
-
+from odrpack import odr_fit as odr_fit_raw
 
 error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
 
@@ -20,10 +18,10 @@ def linear(x, a, b):
 
 @numba.njit
 def log(x, a, b, c):
-    return a * np.log(b*x+1) + c*x
+    return a * np.log(b * x + 1) + c * x
 
 def inverse_log(x, a, b, c):
-    return (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) #thanks wolfram alpha!
+    return (a * b * scipy.special.lambertw(c * np.exp(c / (a * b) + x / a) / (a * b)) - c) / (b * c) #thanks wolfram alpha!
 
 
 def none(x):
@@ -62,10 +60,39 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, b
         p0 = np.ones(argc)
 
     func = np.vectorize(func)
-    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds, ftol=ftol, xtol=xtol, gtol=gtol)
+    params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds, ftol=ftol, xtol=xtol, gtol=gtol, verbose=0)
     std_devs_cf = np.sqrt(np.diag(cov))
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
     return params_cf, (std_devs_cf, goodness_cf)
+
+
+def odr_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, x_errors=None, bounds=None, ftol=1e-8, xtol=1e-8, gtol=1e-8):
+    x_weight = np.ones_like(x_values, dtype=np.float64)
+    y_weight = np.ones_like(y_values, dtype=np.float64)
+    if some(x_errors):
+        x_weight[x_errors != 0.] = x_errors[x_errors != 0.] ** (-2.)
+        x_weight = x_weight / np.max(x_weight)
+        x_weight[x_errors == 0.] = 1.
+    if some(y_errors):
+        y_weight[y_errors != 0.] = y_errors[y_errors != 0.] ** (-2.)
+        y_weight = y_weight / np.max(y_weight)
+        y_weight[y_errors == 0.] = 1.
+
+    argc = len(str(inspect.signature(func)).split()[1:])
+    if none(p0):
+        p0 = np.ones(argc)
+    else:
+        argc = len(p0)
+
+    def func_odr(t, B): return func(t, *B)
+    odr_run = odr_fit_raw(func_odr, x_values, y_values, beta0=p0, weight_x=x_weight, weight_y=y_weight, bounds=bounds, maxit=maxfev)
+
+    params_odr = odr_run.beta
+    std_devs_odr = odr_run.sd_beta
+
+    goodness_odr = goodness_of_fit(y_values, func(x_values, *params_odr))
+
+    return params_odr, (std_devs_odr, goodness_odr)
 
 
 def plt_finish(xlabel, ylabel, save_to=False):
@@ -164,7 +191,9 @@ def fit_edges(bin_centers, hist, n, x0_guesses):
     start = max(start, np.argmin(np.abs(bin_centers - (min(x0_guesses) - 5e3))))
     # stop = np.argmin(np.abs(bin_centers - (x0_guesses[-1]))) + 100
     stop = np.argmin(np.abs(bin_centers - (max(x0_guesses) + 5e3)))
-    res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, y_errors=np.sqrt(hist[start:stop]), ftol=1e-8, xtol=1e-8, gtol=1e-8)
+    # res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, y_errors=np.sqrt(hist[start:stop]), ftol=1e-8, xtol=1e-8, gtol=1e-8)
+    # res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, ftol=1e-8, xtol=1e-8, gtol=1e-8)
+    res, (err, rsq) = odr_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999, y_errors=np.sqrt(hist[start:stop]))
     print(res)
     return res, (err, rsq), (bin_centers[start], bin_centers[stop])
 
@@ -251,6 +280,8 @@ def main():
         long, short, time, channel, _ = np.genfromtxt(calibration_data.np_loadable(fname), delimiter=",", unpack=True)
 
         ds = data_loading.dataset(short, long, time, channel)
+        ds = ds.subset(ds.long > ds.short)
+        ds = ds.subset(ds.long > 0)
         # plt.cla()
         # plt.hist(ds.y(), 100, (0, 0.75))
         # plt.show()
@@ -275,27 +306,29 @@ def main():
         c = -1.00000000e+01
 
         def MeV2channel_log(x):
-            return a * np.log(b*x+1) + c*x
+            return a * np.log(b * x + 1) + c * x
         
         def channel2MeV_log(x):
-            return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real #thanks wolfram alpha!
+            return ((a * b * scipy.special.lambertw(c * np.exp(c / (a * b) + x / a) / (a * b)) - c) / (b * c)).real #thanks wolfram alpha!
 
         ax = plt.subplot(111)
         secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
         secax.set_xlabel("$E$ / MeV")
 
         #dashed line to indicate the trigger-threshold. eyeballed to be at channel 2000 for now
-        cutoff = round(channel2MeV_log(2000)*1e3,4)
+        cutoff = round(channel2MeV_log(2000) * 1e3, 4)
         plt.vlines(x=2000, ymin=0, ymax=plt.ylim()[1],color='black', linestyle='--')
-        plt.text(x=1200, y=plt.ylim()[1]*0.25, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
+        plt.text(x=1200, y=plt.ylim()[1] * 0.25, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
 
         plt_finish("long / channel", "counts")
 
     # plt.figure(figsize=(6, 3), dpi=500)
 
     lines, energies, line_err = make_calibration_data(data)
-    res, (_, rsq) = curve_fit(log, np.array(energies)/1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-10) , (np.inf, np.inf, 10)])
-    # print(res) # print fitparamter for energy calibration
+
+    # res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-100) , (np.inf, np.inf, 10)])
+    res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -5], y_errors=np.abs(line_err), bounds=[(0, 0, -5000), (np.inf, np.inf, 100)])
+    print(res) # print fitparamter for energy calibration
 
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
     plt.xlim(left=0)

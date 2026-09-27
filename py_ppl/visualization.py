@@ -451,11 +451,12 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     print("Raw-ReConvolved chi2 is: " + str(round(chi2_RawReConv,2)))
 
 
-    fig = plt.figure(figsize=plt.figaspect(0.5))
+    # fig = plt.figure(figsize=plt.figaspect(0.5))
     
     #RAW DATA as contour plot
-    ax = fig.add_subplot(2, 3, 1, projection='3d')
-    ax.title.set_text("Raw Data - Countour Plot")
+    fig = plt.figure(figsize=(4, 3), dpi=500)
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    # ax.title.set_text("Raw Data - Countour Plot")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_lines, y_lines, matrix(data), levels=100, axlim_clip=True)
     ax.contourf(x_lines, y_lines, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/scanning_length_x, levels=300, cmap='rainbow', axlim_clip=True)
@@ -466,10 +467,14 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     ax.set_xlabel("x / lines")
     ax.set_ylabel("y / lines")
     ax.set_zlabel("normalised intensity")
+    # plt.tight_layout()
+    export.Save_Plot(scriptpath + "plots/", "Beam_plot_raw")
+    plt.show()
 
     #DECONVOLVED DATA as contour plot
-    ax = fig.add_subplot(2, 3, 2, projection='3d')
-    ax.title.set_text("Deconvolved Data - Contour Plot")
+    fig = plt.figure(figsize=(4, 3), dpi=500)
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    # ax.title.set_text("Deconvolved Data - Contour Plot")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_units, y_units, result, levels=100, axlim_clip=True)
     ax.contourf(x_units, y_units, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
@@ -480,10 +485,14 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     ax.set_xlabel("x / cm")
     ax.set_ylabel("y / cm")
     ax.set_zlabel("normalised intensity")
+    # plt.tight_layout()
+    export.Save_Plot(scriptpath + "plots/", "Beam_plot_deconvolved")
+    plt.show()
 
     #RE-CONVOLCVED DATA as contour plot
-    ax = fig.add_subplot(2, 3, 3, projection='3d')
-    ax.title.set_text("refolded data")
+    fig = plt.figure(figsize=(4, 3), dpi=500)
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    # ax.title.set_text("refolded data")
     ax.view_init(elev=45, azim=-45, roll=0)
     ax.contour(x_units, y_units, reconvolved_norm, levels=300, axlim_clip=True)
     ax.contourf(x_units, y_units, reconvolved_norm, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
@@ -494,6 +503,8 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     ax.set_xlabel("x / cm")
     ax.set_ylabel("y / cm")
     ax.set_zlabel("normalised intensity")
+    # plt.tight_layout()
+    export.Save_Plot(scriptpath + "plots/", "Beam_plot_reconvolved")
     plt.show()
 
     #FITTED 2D-ELLIPTICAL SUPERGAUSSIAN as contour plot
