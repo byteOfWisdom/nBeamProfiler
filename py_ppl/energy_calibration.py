@@ -373,6 +373,7 @@ def main():
         plt.tight_layout()
         Save_Plot(scriptpath + "plots/", "compton_edge_fits")
         plt.show()
+        plt.cla()
 
     # plt.figure(figsize=(6, 3), dpi=500)
     lines, energies, line_err = make_calibration_data(data)
