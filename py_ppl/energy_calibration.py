@@ -2,12 +2,54 @@ import data_loading
 import numpy as np
 import scipy as sp
 from matplotlib import pyplot as plt
+import matplotlib
+import os
 from sys import argv
 import inspect
 import numba
 import scipy
 import sciebo_fetch
 from odrpack import odr_fit as odr_fit_raw
+
+
+def PGF_plots():
+    # activate pgf-plotting
+    matplotlib.use("pgf")
+    # print('Using the ' + matplotlib.get_backend() + ' backend') #for debugging
+
+    #update parameter for the right output font/size
+    plt.rcParams.update({
+        "pgf.texsystem": "pdflatex",
+        "font.family": "serif", # use serif/main font for text elements
+        # 'font.size': 10,        # change text size
+        "pgf.rcfonts": False,   # don't setup fonts from rc parameters
+        'figure.autolayout': True,
+        # "text.usetex": True,     # use inline math for ticks - THIS BREAKS THE EXPORT!
+    })
+    return 
+
+# PGF_plots() #save as PGF otherwise PDF
+
+def Save_Plot(path, title):
+    #create directory if not existing
+    os.makedirs(path, exist_ok=True)
+    #check if PGF is used and save plot
+    if matplotlib.get_backend() == 'pgf':
+        plt.savefig(path + title +'.pgf', format='pgf')
+        print('Plot saved as PGF')
+    else:
+        plt.savefig(path + title +'.pdf')
+        print('Plot saved as PDF')
+
+def Scriptpath(file):
+    # path to where 'file' is
+    scriptpath = str(os.path.abspath(os.path.dirname(file))) + '/'
+    # print("Script path is:") #for debugging
+    # print(scriptpath) #for debugging
+    return scriptpath
+
+#set path the where executing script is
+scriptpath = Scriptpath(__file__)
 
 error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
 
@@ -122,7 +164,7 @@ def plt_func(f, params=None, label=None, xrange=None, alpha=None):
     x = np.linspace(xmin, xmax, 10000)
     y = f(x) if none(params) else f(x, *params) 
     alpha = alpha if alpha else 1
-    plt.plot(x, y, label=label, alpha=alpha, zorder=10)
+    plt.plot(x, y, label=label, alpha=alpha, zorder=10, color='red')
 
 
 # all assumed values are in here for tuning in a single place
@@ -318,26 +360,45 @@ def main():
         #dashed line to indicate the trigger-threshold. eyeballed to be at channel 2000 for now
         cutoff = round(channel2MeV_log(2000) * 1e3, 4)
         plt.vlines(x=2000, ymin=0, ymax=plt.ylim()[1],color='black', linestyle='--')
-        plt.text(x=1200, y=plt.ylim()[1] * 0.25, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
+        plt.text(x=1200, y=plt.ylim()[1] * 0.10, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
 
-        plt_finish("long / channel", "counts")
+        # plt_finish("long / channel", "counts")
+        plt.gcf().set_size_inches(6, 3)
+        plt.grid(which="major")
+        plt.grid(which="minor", linestyle=":", linewidth=0.5)
+        plt.gca().minorticks_on()
+        plt.xlabel("long / channel")
+        plt.ylabel("counts")
+        plt.legend(loc="upper right")
+        plt.tight_layout()
+        Save_Plot(scriptpath + "plots/", "compton_edge_fits")
+        plt.show()
 
     # plt.figure(figsize=(6, 3), dpi=500)
-
     lines, energies, line_err = make_calibration_data(data)
 
     # res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-100) , (np.inf, np.inf, 10)])
-    res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -5], y_errors=np.abs(line_err), bounds=[(0, 0, -5000), (np.inf, np.inf, 100)])
+    res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -1], y_errors=np.abs(line_err), bounds=[(0, 0, -1), (np.inf, np.inf, 100)])
     print(res) # print fitparamter for energy calibration
 
-    plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err)
+    plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err, marker='ro', alpha=1)
     plt.xlim(left=0)
     # plt.xlim(right=65000)
     plt.xlim(right=10)
     plt.ylim(bottom=0)
     plt.ylim(top=70000)
     plt_func(log, res, f"$R^2={round(rsq, 3)}$")
-    plt_finish("$E$ / MeV", "long / channel", )
+    # plt_finish("$E$ / MeV", "long / channel", )
+    plt.gcf().set_size_inches(6, 3)
+    plt.grid(which="major")
+    plt.grid(which="minor", linestyle=":", linewidth=0.5)
+    plt.gca().minorticks_on()
+    plt.xlabel("$E$ / MeV")
+    plt.ylabel("long / channel")
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    Save_Plot(scriptpath + "plots/", "scinti_calibration")
+    plt.show()
 
 
 if __name__ == "__main__":

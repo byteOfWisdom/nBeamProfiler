@@ -14,9 +14,9 @@ scanning_length_x = 30 #cm
 scanning_length_y = 30 #cm
 
 # Parameter and functions to convert channel numbers in energy
-a = 3.20180374e+04      #fitparameter from energy_calibration.py
-b = 5.02109330e-01
-c = -1.00000000e+01
+a = 3.89724561e+04      #fitparameter from energy_calibration.py
+b = 3.63842683e-01
+c = -1.00000000e+00
 def MeV2channel_log(x):
     return a * np.log(b*x+1) + c*x # fitfunction from https://doi.org/10.1016/j.nima.2017.04.028
 
