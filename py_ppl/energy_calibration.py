@@ -10,6 +10,7 @@ import numba
 import scipy
 import sciebo_fetch
 from odrpack import odr_fit as odr_fit_raw
+from sigfig import round         #import an easy way of scientific rounding
 
 
 def PGF_plots():
@@ -164,7 +165,8 @@ def plt_func(f, params=None, label=None, xrange=None, alpha=None):
     x = np.linspace(xmin, xmax, 10000)
     y = f(x) if none(params) else f(x, *params) 
     alpha = alpha if alpha else 1
-    plt.plot(x, y, label=label, alpha=alpha, zorder=10, color='blue')
+    # plt.plot(x, y, label=label, alpha=alpha, zorder=10, color='blue')
+    plt.plot(x, y, label=label, alpha=alpha, zorder=10)
 
 
 # all assumed values are in here for tuning in a single place
@@ -236,6 +238,8 @@ def fit_edges(bin_centers, hist, n, x0_guesses):
     # res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, y_errors=np.sqrt(hist[start:stop]), ftol=1e-8, xtol=1e-8, gtol=1e-8)
     # res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, ftol=1e-8, xtol=1e-8, gtol=1e-8)
     res, (err, rsq) = odr_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999, y_errors=np.sqrt(hist[start:stop]))
+    # for i in range(len(res)):
+    #     print(round(res[i], err[i], sep='external_brackets'))
     print(res)
     return res, (err, rsq), (bin_centers[start], bin_centers[stop])
 
@@ -262,7 +266,8 @@ class dataset_analysis:
     def plot(self, defer_show=False):
         plt.plot(self.bin_centers, self.hist)
         f = np.vectorize(make_multi_edge(self.n))
-        plt_func(f, self.res, f"$R^2={round(self.rsq, 3)}$", self.xrange)
+        # plt_func(f, self.res, f"$R^2={round(self.rsq, 3)}$", self.xrange)
+        plt_func(f, self.res, "$\\chi_{\\mathrm{red}}^{2}=$" , self.xrange)
         plt.yscale("log")
         # plt.title(self.isotope)
         if not defer_show:
@@ -343,9 +348,9 @@ def main():
 
         #secondary x-axis in MeV
         #fitparamter from the next step of the calibration
-        a = 3.20180374e+04  
-        b = 5.02109330e-01     
-        c = -1.00000000e+01
+        a = 3.89724561e+04  
+        b = 3.63842683e-01     
+        c = -1.00000000e+00
 
         def MeV2channel_log(x):
             return a * np.log(b * x + 1) + c * x
