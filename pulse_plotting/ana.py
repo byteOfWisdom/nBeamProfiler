@@ -273,33 +273,55 @@ if __name__ == "__main__":
         span = abs(plt.xlim()[0]) + abs(plt.xlim()[1])
         print(span)
         plt.axvline(x=0, color='black', linestyle='--', linewidth=1)#vline for start
+        plt.axvline(x=12.5, color='black', linestyle='--', linewidth=1)#vline for short
+        plt.axvline(x=175, color='black', linestyle='--', linewidth=1)#vline for long
 
+        #lines and text for normal scale
+        #hline and text for short
         plt.axhline(y=1.05, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 11.5)/span, linewidth=1, color='black')#hline from start to short
         plt.text(6, 1.1, 'short', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
 
+        #hline and text for long and total
         plt.axhline(y=1.15, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from start to long
         plt.text(90, 1.19, 'long', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
         plt.text(90, 1.11, 'total', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
 
+        #hline and text for tail
         plt.axhline(y=0.95, xmin=(abs(plt.xlim()[0]) + 13.5)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from short to long
         plt.text(90, 0.91, 'tail', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
         
-        plt.axvline(x=12.5, color='black', linestyle='--', linewidth=1)#vline for short
-        plt.axvline(x=175, color='black', linestyle='--', linewidth=1)#vline for long
-
         # plt.plot(n_time, pulse_function(n_time, *n_res), label="neutron fit")
         # plt.plot(gamma_time, pulse_function(gamma_time, *gamma_res), label="gamma fit")
         plt.legend(loc='center')
+        plt.ylim(-0.05, 1.25)   #for normal scale
+
+        #lines and text for log scale
+        #hline and text for short
+        # plt.axhline(y=1.9, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 11.5)/span, linewidth=1, color='black')#hline from start to short
+        # plt.text(6, 1.4, 'short', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+
+        # #hline and text for long and total
+        # plt.axhline(y=2.5, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from start to long
+        # plt.text(90, 3.5, 'long', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        # plt.text(90, 1.7, 'total', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+
+        # #hline and text for tail
+        # plt.axhline(y=1, xmin=(abs(plt.xlim()[0]) + 13.5)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from short to long
+        # plt.text(90, 0.7, 'tail', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        # plt.ylim(0.001, 5)
+        # plt.yscale("log")
+        # plt.legend(loc='center right')
+
+        #stuff both representations need
+        plt.grid()
         plt.xlabel('$t$ / ns')
         plt.ylabel('normalized pulse height / arb. unit')
-        plt.grid()
-        plt.ylim(-0.05, 1.25)
     else:
-        # plt.yscale("log")
         _, _, y1, y2 = plt.axis()
         plt.fill_between(np.linspace(offset, long_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="blue", alpha=0.2)
         plt.fill_between(np.linspace(offset, short_integration + offset, 1000), np.ones(1000) * y1, np.ones(1000) * y2, color="green", alpha=0.2)
 
     plt.tight_layout()
     export.Save_Plot(scriptpath + "plots/", "Pulse_comparison")
+    # export.Save_Plot(scriptpath + "plots/", "Pulse_comparison_log")
     plt.show()
