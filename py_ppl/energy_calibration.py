@@ -164,7 +164,7 @@ def plt_func(f, params=None, label=None, xrange=None, alpha=None):
     x = np.linspace(xmin, xmax, 10000)
     y = f(x) if none(params) else f(x, *params) 
     alpha = alpha if alpha else 1
-    plt.plot(x, y, label=label, alpha=alpha, zorder=10, color='red')
+    plt.plot(x, y, label=label, alpha=alpha, zorder=10, color='blue')
 
 
 # all assumed values are in here for tuning in a single place
@@ -358,9 +358,9 @@ def main():
         secax.set_xlabel("$E$ / MeV")
 
         #dashed line to indicate the trigger-threshold. eyeballed to be at channel 2000 for now
-        cutoff = round(channel2MeV_log(2000) * 1e3, 4)
+        cutoff = round(channel2MeV_log(2000) * 1e3, 1)
         plt.vlines(x=2000, ymin=0, ymax=plt.ylim()[1],color='black', linestyle='--')
-        plt.text(x=1200, y=plt.ylim()[1] * 0.10, s=str(cutoff) + ' keV', fontsize=10, rotation=-90, color='black', ha='center', va='center', bbox=None)
+        plt.text(x=1200, y=plt.ylim()[1] * 0.10, s=str(cutoff) + ' keV', fontsize=10, rotation=90, color='black', ha='center', va='center', bbox=None)
 
         # plt_finish("long / channel", "counts")
         plt.gcf().set_size_inches(6, 3)
@@ -381,7 +381,13 @@ def main():
     res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -1], y_errors=np.abs(line_err), bounds=[(0, 0, -1), (np.inf, np.inf, 100)])
     print(res) # print fitparamter for energy calibration
 
-    plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err, marker='ro', alpha=1)
+    plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err, marker='bo', alpha=1)
+    plt.text(x=0.45, y=15000, s='Na-22', fontsize=10, rotation=40, color='black', ha='center', va='center', bbox=None)
+    plt.axhline(y=14500, xmin=0.3/(abs(plt.xlim()[0])+abs(plt.xlim()[1])), xmax=0.40/(abs(plt.xlim()[0])+abs(plt.xlim()[1])), linewidth=1, color='black')
+    plt.axvline(x=0.34, ymin=3900/(abs(plt.ylim()[0])+abs(plt.ylim()[1])), ymax=5000/(abs(plt.ylim()[0])+abs(plt.ylim()[1])), linewidth=1, color='black')
+    plt.text(x=1.3, y=6000, s='Cs-137', fontsize=10, rotation=0, color='black', ha='center', va='center', bbox=None)
+    plt.axhline(y=6200, xmin=0.3/(abs(plt.xlim()[0])+abs(plt.xlim()[1])), xmax=0.35/(abs(plt.xlim()[0])+abs(plt.xlim()[1])), linewidth=1, color='black')
+    plt.text(x=4.3, y=42000, s='AmBe', fontsize=10, rotation=0, color='black', ha='center', va='center', bbox=None)
     plt.xlim(left=0)
     # plt.xlim(right=65000)
     plt.xlim(right=10)
