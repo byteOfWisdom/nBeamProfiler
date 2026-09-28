@@ -5,6 +5,7 @@ import sciebo_fetch
 import numpy as np
 import scipy
 from types import NoneType
+import matplotlib
 
 
 def energy_to_ch(x):
@@ -58,7 +59,7 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots()
 
-    particle_hist = ax.hist2d(dataset.long, dataset.y(), bins=(bin_count, bin_count), range=((0, max(dataset.long)), (0, max(dataset.y()[dataset.y() < 1]))), cmap="plasma")
+    particle_hist = ax.hist2d(dataset.long, dataset.y(), bins=(bin_count, bin_count), range=((0, max(dataset.long)), (0, max(dataset.y()[dataset.y() < 1]))), cmap='rainbow', norm=matplotlib.colors.LogNorm())
     ax.set_xlabel("long / channel")
     ax.set_ylabel("$Q$")
     energy_axis = ax.secondary_xaxis("top", functions=(ch_to_energy, energy_to_ch))
