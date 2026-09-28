@@ -252,7 +252,7 @@ if __name__ == "__main__":
 
     print(f"rejected {ana.rejected} for pile ups")
 
-    # export.PGF_plots() #comment in and out to save as PGF or PDF
+    export.PGF_plots() #comment in and out to save as PGF or PDF
     fig = plt.figure(figsize=(6, 3), dpi=500)
     
     if plot_hist:
@@ -297,17 +297,18 @@ if __name__ == "__main__":
 
         #lines and text for log scale
         #hline and text for short
-        # plt.axhline(y=1.9, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 11.5)/span, linewidth=1, color='black')#hline from start to short
-        # plt.text(6, 1.4, 'short', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        # plt.axhline(y=1.4, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 11.5)/span, linewidth=1, color='black')#hline from start to short
+        # plt.text(6, 1.9, 'short', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
 
         # #hline and text for long and total
         # plt.axhline(y=2.5, xmin=(abs(plt.xlim()[0]) + 1)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from start to long
-        # plt.text(90, 3.5, 'long', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
-        # plt.text(90, 1.7, 'total', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        # plt.text(90, 3.4, 'long', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        # plt.text(90, 1.8, 'total', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
 
         # #hline and text for tail
-        # plt.axhline(y=1, xmin=(abs(plt.xlim()[0]) + 13.5)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from short to long
-        # plt.text(90, 0.7, 'tail', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+        # plt.axhline(y=0.8, xmin=(abs(plt.xlim()[0]) + 13.5)/span, xmax=(abs(plt.xlim()[0]) + 175)/span, linewidth=1, color='black')#hline from short to long
+        # plt.text(90, 0.55, 'tail', fontsize=10, va='center', ha='center', backgroundcolor='w', bbox=None)
+
         # plt.ylim(0.001, 5)
         # plt.yscale("log")
         # plt.legend(loc='center right')
