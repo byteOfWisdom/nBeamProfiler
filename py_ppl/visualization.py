@@ -348,12 +348,13 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
     # PULSE SHAPE DISCRIMINATION plot
     fig = plt.figure(figsize=(6, 3), dpi=500)
     ax = fig.add_subplot(111)
-    ax.hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
-    ax.axhline(y=args['n_gamma_cut'], color='black', linewidth=1 ,linestyle='--')
+    particle_hist = ax.hist2d(long_data, ((long_data - short_data) / (long_data)), bins=500, cmap='rainbow', norm=matplotlib.colors.LogNorm())
+    ax.axhline(y=args['n_gamma_cut'], color='black', linewidth=0.5 ,linestyle='--')
     ax.text(60000, args['n_gamma_cut']+0.03, 'neutrons', fontsize=8, color='black', ha='center', va='center')
     ax.text(60000, args['n_gamma_cut']-0.03, 'gammas', fontsize=8, color='black', ha='center', va='center')
-    ax.set_xlabel("long / channel ")
+    ax.set_xlabel("$Q_{long}$ / channel")
     ax.set_ylabel("$Q$")
+    fig.colorbar(particle_hist[3])
 
     # add a second x-axis with channels converted into Energy
     secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))

@@ -6,7 +6,17 @@ import numpy as np
 import scipy
 from types import NoneType
 import matplotlib
+import os
 
+def Scriptpath(file):
+    # path to where 'file' is
+    scriptpath = str(os.path.abspath(os.path.dirname(file))) + '/'
+    # print("Script path is:") #for debugging
+    # print(scriptpath) #for debugging
+    return scriptpath
+
+#set path the where executing script is
+scriptpath = Scriptpath(__file__)
 
 def energy_to_ch(x):
     a = 3.20180374e+04  
@@ -33,7 +43,7 @@ if __name__ == "__main__":
 
     source = argv[1]
     name = argv[2]
-    bin_count = 100
+    bin_count = 300
     if "--bins" in argv:
         bin_count = int(argv[1 + argv.index("--bins")])
 
@@ -56,14 +66,17 @@ if __name__ == "__main__":
     long, short, t, c, _ = np.genfromtxt(load_handle, delimiter=",", unpack=True)
     dataset = data_loading.dataset(short, long, t, c)
     dataset = dataset.subset(dataset.long > dataset.short)
+    dataset = dataset.subset(dataset.long > 0)
 
     fig, ax = plt.subplots()
 
     particle_hist = ax.hist2d(dataset.long, dataset.y(), bins=(bin_count, bin_count), range=((0, max(dataset.long)), (0, max(dataset.y()[dataset.y() < 1]))), cmap='rainbow', norm=matplotlib.colors.LogNorm())
-    ax.set_xlabel("long / channel")
+    ax.set_xlabel("$Q_{long}$ / channel")
     ax.set_ylabel("$Q$")
-    energy_axis = ax.secondary_xaxis("top", functions=(ch_to_energy, energy_to_ch))
-    energy_axis.set_xlabel("energy / MeV")
+    ax.set_xlim(0,50000)
+    ax.set_ylim(0.2,0.6)
+    # energy_axis = ax.secondary_xaxis("top", functions=(ch_to_energy, energy_to_ch))
+    # energy_axis.set_xlabel("energy / MeV")
     fig.colorbar(particle_hist[3])
 
     if not isinstance(n_gamma_cut, NoneType):
@@ -71,4 +84,8 @@ if __name__ == "__main__":
         ax.text(max(dataset.long) - 10000, n_gamma_cut + 0.02, "neutrons", color="white")
         ax.text(max(dataset.long) - 10000, n_gamma_cut - 0.03, "gammas", color="white")
 
+    plt.gcf().set_size_inches(4, 3)
+    plt.tight_layout()
+    plt.savefig(scriptpath + "plots/" + "PSD-Plot_Test" + '.pdf')
+    print('Plot saved as PDF')
     plt.show()
