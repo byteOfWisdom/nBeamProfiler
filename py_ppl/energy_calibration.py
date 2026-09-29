@@ -10,7 +10,7 @@ import numba
 import scipy
 import sciebo_fetch
 from odrpack import odr_fit as odr_fit_raw
-from sigfig import round         #import an easy way of scientific rounding
+# from sigfig import round         #import an easy way of scientific rounding
 
 
 def PGF_plots():
@@ -80,6 +80,13 @@ def goodness_of_fit(data, fit):
     tss = sum((data - np.average(data)) ** 2)
     return 1 - (rss / tss)
 
+def red_chi_squ(data,fitvalues, no_fitparameters):
+    chi_squ = sum( (data - fitvalues) ** 2 / data) # we assume possion errors: error_data = sqrt(data), therefore error_data**2 = data
+    datapoints = len(data)
+    red_chi_squ = chi_squ / (datapoints - no_fitparameters)
+    print("Red. Chi2 is: " +str(red_chi_squ))
+    return red_chi_squ
+
 
 def plt_errorbar(xval, yval, xerr=None, yerr=None, label=None, marker=None, alpha=None):
     params = error_bar_def
@@ -122,6 +129,7 @@ def odr_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, x_e
         y_weight[y_errors == 0.] = 1.
 
     argc = len(str(inspect.signature(func)).split()[1:])
+    
     if none(p0):
         p0 = np.ones(argc)
     else:
@@ -135,7 +143,16 @@ def odr_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, x_e
 
     goodness_odr = goodness_of_fit(y_values, func(x_values, *params_odr))
 
-    return params_odr, (std_devs_odr, goodness_odr)
+    #remove 0's from array - i know this can be done more elegant but it's late o'clock and i need to get this done ~.~
+    x_values = np.where(y_values>0, x_values, np.nan)
+    x_values = x_values[~np.isnan(x_values)]
+    y_values = np.where(y_values>0, y_values, np.nan)
+    y_values = y_values[~np.isnan(y_values)]
+
+    
+    red_chi2 = red_chi_squ(y_values,func(x_values, *params_odr), argc)
+
+    return params_odr, (std_devs_odr, goodness_odr), red_chi2
 
 
 def plt_finish(xlabel, ylabel, save_to=False):
@@ -237,11 +254,11 @@ def fit_edges(bin_centers, hist, n, x0_guesses):
     stop = np.argmin(np.abs(bin_centers - (max(x0_guesses) + 5e3)))
     # res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, y_errors=np.sqrt(hist[start:stop]), ftol=1e-8, xtol=1e-8, gtol=1e-8)
     # res, (err, rsq) = curve_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999999, ftol=1e-8, xtol=1e-8, gtol=1e-8)
-    res, (err, rsq) = odr_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999, y_errors=np.sqrt(hist[start:stop]))
+    res, (err, rsq), red_chi2 = odr_fit(f, bin_centers[start:stop], hist[start:stop], p0=p0, maxfev=9999, y_errors=np.sqrt(hist[start:stop]))
     # for i in range(len(res)):
     #     print(round(res[i], err[i], sep='external_brackets'))
     print(res)
-    return res, (err, rsq), (bin_centers[start], bin_centers[stop])
+    return res, (err, rsq), (bin_centers[start], bin_centers[stop]), red_chi2
 
 
 class dataset_analysis:
@@ -256,7 +273,7 @@ class dataset_analysis:
         self.n = len(gamma_line_db[self.isotope])
         # x0_guesses = compton_edge(np.array(gamma_line_db[self.isotope])) * config.guess_factor
         x0_guesses = initial_guess_db[self.isotope]
-        self.res, (self.err, self.rsq), self.xrange = fit_edges(self.bin_centers, self.hist, self.n, x0_guesses)
+        self.res, (self.err, self.rsq), self.xrange, self.red_chi2 = fit_edges(self.bin_centers, self.hist, self.n, x0_guesses)
         self.compton_edges = []
         self.edge_errors = []
         for i in range(self.n):
@@ -267,7 +284,7 @@ class dataset_analysis:
         plt.plot(self.bin_centers, self.hist)
         f = np.vectorize(make_multi_edge(self.n))
         # plt_func(f, self.res, f"$R^2={round(self.rsq, 3)}$", self.xrange)
-        plt_func(f, self.res, "$\\chi_{\\mathrm{red}}^{2}=$" , self.xrange)
+        plt_func(f, self.res, "$\\chi_{\\mathrm{red}}^{2}= $" +str(round(self.red_chi2,2)), self.xrange)
         plt.yscale("log")
         # plt.title(self.isotope)
         if not defer_show:
@@ -359,20 +376,23 @@ def main():
             return ((a * b * scipy.special.lambertw(c * np.exp(c / (a * b) + x / a) / (a * b)) - c) / (b * c)).real #thanks wolfram alpha!
 
         ax = plt.subplot(111)
-        secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
-        secax.set_xlabel("$E$ / MeV")
+        # secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
+        # secax.set_xlabel("$E$ / MeV")
 
         #dashed line to indicate the trigger-threshold. eyeballed to be at channel 2000 for now
         cutoff = round(channel2MeV_log(2000) * 1e3, 1)
         plt.vlines(x=2000, ymin=0, ymax=plt.ylim()[1],color='black', linestyle='--')
         plt.text(x=1200, y=plt.ylim()[1] * 0.10, s=str(cutoff) + ' keV', fontsize=10, rotation=90, color='black', ha='center', va='center', bbox=None)
+        plt.text(x=18000, y=15, s='Na-22', fontsize=10, rotation=-45, color='black', ha='center', va='center', bbox=None)
+        plt.text(x=10000, y=15, s='Cs-137', fontsize=10, rotation=-45, color='black', ha='center', va='center', bbox=None)
+        plt.text(x=32000, y=150, s='AmBe', fontsize=10, rotation=0, color='black', ha='center', va='center', bbox=None)
 
         # plt_finish("long / channel", "counts")
         plt.gcf().set_size_inches(6, 3)
         plt.grid(which="major")
         plt.grid(which="minor", linestyle=":", linewidth=0.5)
         plt.gca().minorticks_on()
-        plt.xlabel("long / channel")
+        plt.xlabel("$Q_{long}$ / channel")
         plt.ylabel("counts")
         plt.legend(loc="upper right")
         plt.tight_layout()

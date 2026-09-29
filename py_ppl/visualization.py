@@ -358,7 +358,7 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
 
     # add a second x-axis with channels converted into Energy
     secax = ax.secondary_xaxis('top', functions=(channel2MeV_log, MeV2channel_log))
-    secax.set_xlabel("$E$ / MeV")
+    secax.set_xlabel("$E$ / MeV$_{ee}$")
 
     plt.tight_layout()
     export.Save_Plot(scriptpath + "plots/", "PSD_plot")
