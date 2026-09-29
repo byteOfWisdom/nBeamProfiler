@@ -61,7 +61,7 @@ def linear(x, a, b):
 
 @numba.njit
 def log(x, a, b, c):
-    return a * np.log(b * x + 1) + c * x
+    return a * np.log(b * x + 1) + c * x 
 
 def inverse_log(x, a, b, c):
     return (a * b * scipy.special.lambertw(c * np.exp(c / (a * b) + x / a) / (a * b)) - c) / (b * c) #thanks wolfram alpha!
@@ -80,8 +80,8 @@ def goodness_of_fit(data, fit):
     tss = sum((data - np.average(data)) ** 2)
     return 1 - (rss / tss)
 
-def red_chi_squ(data,fitvalues, no_fitparameters):
-    chi_squ = sum( (data - fitvalues) ** 2 / data) # we assume possion errors: error_data = sqrt(data), therefore error_data**2 = data
+def red_chi_squ(data,fitvalues, no_fitparameters, data_errors=none):
+    chi_squ = sum( (data - fitvalues) ** 2 / data_errors**2)
     datapoints = len(data)
     red_chi_squ = chi_squ / (datapoints - no_fitparameters)
     print("Red. Chi2 is: " +str(red_chi_squ))
@@ -113,7 +113,10 @@ def curve_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, b
     params_cf, cov = sp.optimize.curve_fit(func, x_values, y_values, sigma=y_errors, p0=p0, maxfev=maxfev, absolute_sigma=True, bounds=bounds, ftol=ftol, xtol=xtol, gtol=gtol, verbose=0)
     std_devs_cf = np.sqrt(np.diag(cov))
     goodness_cf = goodness_of_fit(y_values, func(x_values, *params_cf))
-    return params_cf, (std_devs_cf, goodness_cf)
+
+    red_chi2 = red_chi_squ(y_values,func(x_values, *params_cf), 2, y_errors)
+
+    return params_cf, (std_devs_cf, goodness_cf), red_chi2
 
 
 def odr_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, x_errors=None, bounds=None, ftol=1e-8, xtol=1e-8, gtol=1e-8):
@@ -150,7 +153,7 @@ def odr_fit(func, x_values, y_values, p0=None, maxfev=100000, y_errors=None, x_e
     y_values = y_values[~np.isnan(y_values)]
 
     
-    red_chi2 = red_chi_squ(y_values,func(x_values, *params_odr), argc)
+    red_chi2 = red_chi_squ(y_values,func(x_values, *params_odr), argc, np.sqrt(y_values))
 
     return params_odr, (std_devs_odr, goodness_odr), red_chi2
 
@@ -404,7 +407,7 @@ def main():
     lines, energies, line_err = make_calibration_data(data)
 
     # res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-100) , (np.inf, np.inf, 10)])
-    res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -1], y_errors=np.abs(line_err), bounds=[(0, 0, -1), (np.inf, np.inf, 100)])
+    res, (_, rsq), red_chi2 = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -1], y_errors=np.abs(line_err), bounds=[(0, 0, -1), (np.inf, np.inf, 100)])
     print(res) # print fitparamter for energy calibration
 
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err, marker='bo', alpha=1)
@@ -419,14 +422,15 @@ def main():
     plt.xlim(right=10)
     plt.ylim(bottom=0)
     plt.ylim(top=70000)
-    plt_func(log, res, f"$R^2={round(rsq, 3)}$")
+    # plt_func(log, res, f"$R^2={round(rsq, 3)}$")
+    plt_func(log, res, "$\\chi_{\\mathrm{red}}^{2}= $" +str(round(red_chi2,2)))
     # plt_finish("$E$ / MeV", "long / channel", )
     plt.gcf().set_size_inches(6, 3)
     plt.grid(which="major")
     plt.grid(which="minor", linestyle=":", linewidth=0.5)
     plt.gca().minorticks_on()
     plt.xlabel("$E$ / MeV")
-    plt.ylabel("long / channel")
+    plt.xlabel("$Q_{long}$ / channel")
     plt.legend(loc="lower right")
     plt.tight_layout()
     Save_Plot(scriptpath + "plots/", "scinti_calibration")
