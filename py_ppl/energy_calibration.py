@@ -430,7 +430,7 @@ def main():
     plt.grid(which="minor", linestyle=":", linewidth=0.5)
     plt.gca().minorticks_on()
     plt.xlabel("$E$ / MeV")
-    plt.xlabel("$Q_{long}$ / channel")
+    plt.ylabel("$Q_{long}$ / channel")
     plt.legend(loc="lower right")
     plt.tight_layout()
     Save_Plot(scriptpath + "plots/", "scinti_calibration")
