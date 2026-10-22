@@ -11,6 +11,7 @@ import scipy
 import sciebo_fetch
 from odrpack import odr_fit as odr_fit_raw
 # from sigfig import round         #import an easy way of scientific rounding
+import sigfig
 
 
 def PGF_plots():
@@ -59,9 +60,13 @@ error_bar_def = {"fmt": " ", "elinewidth": 0.75, "capsize": 2}
 def linear(x, a, b):
     return a * x + b
 
+# @numba.njit
+# def log(x, a, b, c):
+#     return a * np.log(b * x + 1) + c * x 
+
 @numba.njit
-def log(x, a, b, c):
-    return a * np.log(b * x + 1) + c * x 
+def log(x, a, b):
+    return a * np.log(b * x + 1) - x 
 
 def inverse_log(x, a, b, c):
     return (a * b * scipy.special.lambertw(c * np.exp(c / (a * b) + x / a) / (a * b)) - c) / (b * c) #thanks wolfram alpha!
@@ -407,8 +412,10 @@ def main():
     lines, energies, line_err = make_calibration_data(data)
 
     # res, (_, rsq) = curve_fit(log, np.array(energies) / 1e6, lines, p0=[1,1,-0.1], bounds=[(0,0,-100) , (np.inf, np.inf, 10)])
-    res, (_, rsq), red_chi2 = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -1], y_errors=np.abs(line_err), bounds=[(0, 0, -1), (np.inf, np.inf, 100)])
+    # res, (_, rsq), red_chi2 = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2, -1], y_errors=np.abs(line_err), bounds=[(0, 0, -1), (np.inf, np.inf, 100)])
+    res, (_, rsq), red_chi2 = curve_fit(log, np.array(energies) / 1e6, lines, p0=[2, 2], y_errors=np.abs(line_err), bounds=[(0, 0), (np.inf, np.inf)])
     print(res) # print fitparamter for energy calibration
+    print(_)
 
     plt_errorbar(np.array(energies)/1e6, lines, yerr=line_err, marker='bo', alpha=1)
     plt.text(x=0.45, y=15000, s='Na-22', fontsize=10, rotation=40, color='black', ha='center', va='center', bbox=None)
@@ -422,9 +429,23 @@ def main():
     plt.xlim(right=10)
     plt.ylim(bottom=0)
     plt.ylim(top=70000)
-    # plt_func(log, res, f"$R^2={round(rsq, 3)}$")
-    plt_func(log, res, "$\\chi_{\\mathrm{red}}^{2}= $" +str(round(red_chi2,2)))
+    plt_func(log, res, "$f_{\\mathrm{calib}}=A\\cdot\\log{\\left(bx+1\\right)}-x$")
+    plt.plot([],[], color="w", label="$A = $" +str(sigfig.round(res[0], uncertainty=_[0], sep='external_brackets')))
+    plt.plot([],[], color="w", label="$b = $" +str(sigfig.round(res[1], uncertainty=_[1], sep='external_brackets')) + '$\\frac{1}{\\mathrm{MeV}}$')
+    plt.plot([],[], color="w", label=f"$R^2={round(rsq, 3)}$")
+    
+    # plt_func(log, res, "$\\chi_{\\mathrm{red}}^{2}= $" +str(round(red_chi2,2)))
     # plt_finish("$E$ / MeV", "long / channel", )
+    # plt.text(
+    #     0.5, 0.6,
+    #     '$I_{\\mathrm{Cup}} = \\lambda \\cdot U_{\\Sigma}$'
+    #     # # '\na = (%.5f' %calib_factor + '+-' + '%.5f)' %Delta_calib_factor + ' nA/V'
+    #     # '\n$\\lambda$ = ' + str(round(calib_factor, Delta_calib_factor, sep='external_brackets')) + ' nA/V'
+    #     # '\n$\\chi_{\\mathrm{red}}^{2}$ = ' + str(round(red_chi2, decimals=2)) + ''
+    #     # # '\nSEY =  (%.3f' %(SEY*100)+ '+-' + '%.3f)' %(Delta_SEY*100) + ' %'
+    #     # '\nSEY = ' + str(round(SEY*100, Delta_SEY*100, sep='external_brackets')) + ' %'
+    #     ,rotation=0, color='black',
+    #     bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
     plt.gcf().set_size_inches(6, 3)
     plt.grid(which="major")
     plt.grid(which="minor", linestyle=":", linewidth=0.5)
