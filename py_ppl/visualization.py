@@ -107,8 +107,8 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
                             super_gaussian_2d
                             ,(x_units, y_units) # fit data to axis in physical units
                             ,result.ravel()
-                            # ,sigma = np.sqrt(result.ravel())
-                            # ,absolute_sigma = True
+                            ,sigma = np.sqrt(result.ravel())
+                            ,absolute_sigma = True
                             ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]  # initial_guess for fitting parameters
                             ,maxfev=99999999
                             ,bounds=(
@@ -164,7 +164,7 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
         
         #calculate reduced chi2
         chi2 = np.sum( (data1_clean - data2_clean)**2 / np.sqrt(data2_clean)**2 ) 
-        dofs = len(data1_clean) - len(popt)
+        dofs = len(data1_clean) - len(popt) -1
         red_chi = chi2/dofs
         return(red_chi,chi2)
     
@@ -419,23 +419,8 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     # calculate fitted parameters-error
     A_error, x0_error, y0_error, sigma_x_error, sigma_y_error, n_error, offset_error = np.sqrt(np.diag(pcov))
 
-    # print fitted parameters to console
-    print("------------------------------------")
-    print("Fitted parameters for Supergaussian:")
-    print(
-    'A=' + str(round(A_fit, A_error, sep='external_brackets'))+', ' + 'offset=' + str(round(offset_fit, offset_error, sep='external_brackets'))+', \n'
-    'x0=' + str(round(x0_fit, x0_error, sep='external_brackets'))+'cm, ' + 'y0=' + str(round(y0_fit, y0_error, sep='external_brackets'))+'cm, \n'
-    'sigma_x=' + str(round(sigma_x_fit, sigma_x_error, sep='external_brackets'))+'cm, ' + 'sigma_y=' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets'))+'cm, \n'
-    'n=' + str(round(n_fit, n_error, sep='external_brackets'))
-        )
-    print("------------------------------------")
-    # print("Latex-Line for tables:")
-    # print(str(round(sigma_x_fit, sigma_x_error, sep='external_brackets')) + ' & ' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets')) + ' & ' +
-    #       str(round(n_fit, n_error, sep='external_brackets')) + ' & ' + str(round(A_fit, A_error, sep='external_brackets')) + ' & ' + 
-    #       str(round(x0_fit, x0_error, sep='external_brackets')) + ' & ' + str(round(y0_fit, y0_error, sep='external_brackets')) + ' & ' +
-    #       str(round(offset_fit, offset_error, sep='external_brackets')) + ' \\\\'
-    #      )
-    # print("------------------------------------")
+    FWHM_x, FWHM_x_err = calc_FWHM(sigma_x_fit, sigma_x_error, n_fit, n_error)
+    FWHM_y, FWHM_y_err = calc_FWHM(sigma_y_fit, sigma_y_error, n_fit, n_error)
     
     # use the fitted parameters in supergaus function to calculate z-values for plotting
     Z_true = super_gaussian_2d((x_units, y_units), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).reshape(np.max(data[1]) + 1, np.max(data[1]) + 1)
@@ -461,7 +446,7 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
         
         #calculate reduced chi2
         chi2 = np.sum( (data1_clean - data2_clean)**2 / np.sqrt(data2_clean)**2 ) 
-        dofs = len(data1_clean) - len(popt)
+        dofs = len(data1_clean) - len(popt) -1
         red_chi = chi2/dofs
         return(red_chi,chi2)
     
@@ -471,6 +456,29 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     red_chi_RawReConv, chi2_RawReConv = clean_and_chi2(matrix(data),reconvolved_norm)
     print("Raw-ReConvolved chi2 is: " + str(round(chi2_RawReConv,2)))
 
+    # print fitted parameters to console
+    print("------------------------------------")
+    print("Fitted parameters for Supergaussian:")
+    print(
+    'A=' + str(round(A_fit, A_error, sep='external_brackets'))+', ' + 'offset=' + str(round(offset_fit, offset_error, sep='external_brackets'))+', \n'
+    'x0=' + str(round(x0_fit, x0_error, sep='external_brackets'))+'cm, ' + 'y0=' + str(round(y0_fit, y0_error, sep='external_brackets'))+'cm, \n'
+    'sigma_x=' + str(round(sigma_x_fit, sigma_x_error, sep='external_brackets'))+'cm, ' + 'sigma_y=' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets'))+'cm, \n'
+    'n=' + str(round(n_fit, n_error, sep='external_brackets'))
+         )
+    
+    print("------------------------------------")
+    print("Latex-Line for tables:")
+    print(str(round(sigma_x_fit, sigma_x_error, sep='external_brackets')) + ' & ' + 
+          str(round(FWHM_x, FWHM_x_err, sep='external_brackets')) + ' & ' + 
+          str(round(sigma_y_fit, sigma_y_error, sep='external_brackets')) + ' & ' +
+          str(round(FWHM_y, FWHM_y_err, sep='external_brackets')) + ' & ' + 
+          str(round(n_fit, n_error, sep='external_brackets')) + ' & ' + 
+          str(round(A_fit, A_error, sep='external_brackets')) + ' & ' + 
+          str(round(x0_fit, x0_error, sep='external_brackets')) + ' & ' + 
+          str(round(y0_fit, y0_error, sep='external_brackets')) + ' & ' +
+          str(round(red_chi_SG,2)) + ' \\\\'
+         )
+    print("------------------------------------")
 
     # fig = plt.figure(figsize=plt.figaspect(0.5))
     
