@@ -40,9 +40,10 @@ def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n, offset):
     sigma_y = abs(sigma_y)
     n = abs(n)
     # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n)              #rectangular gaussian beam 
-    exponent = -( ( (x - x0)/(2*sigma_x) )  **2   + ( (y - y0)/(2*sigma_y) )**2 ) ** n       #elliptical gaussian beam, thanks wikipedia :)
-    return (A * np.exp(exponent) + offset).ravel()  #with offset
-    # return (A * np.exp(exponent)).ravel()  #without offset
+    # exponent = -( ( (x - x0)/(2*sigma_x) )  **2   + ( (y - y0)/(2*sigma_y) )**2 ) ** n       #elliptical gaussian beam, thanks wikipedia :) before typo!!!!!!
+    exponent = -( ( (x - x0)**2/(2*sigma_x**2) )   + ( (y - y0)**2/(2*sigma_y**2) ) ) ** n       #elliptical gaussian beam, thanks wikipedia :)
+    # return (A * np.exp(exponent) + offset).ravel()  #with offset
+    return (A * np.exp(exponent)).ravel()  #without offset
 
 
 #Define the 1D super-Gaussian model for projection plotting
@@ -51,8 +52,10 @@ def super_gaussian_1d(x, A, x0, sigma, n, offset):
     sigma = abs(sigma)
     n = abs(n)
     # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n)              #rectangular gaussian beam 
-    exponent = -( ( (x - x0)/(2*sigma) )  **2 ) ** n                                         #elliptical gaussian beam, thanks wikipedia :)
-    return (A * np.exp(exponent) + offset)
+    # exponent = -( ( (x - x0)/(2*sigma) )  **2 ) ** n                                         #elliptical gaussian beam, thanks wikipedia :)
+    exponent = -(  (x - x0)**2/(2*sigma**2)  ) ** n 
+    # return (A * np.exp(exponent) + offset)
+    return (A * np.exp(exponent))
 
 
 #Plots for Preview 1 - 2D-Heatmaps
