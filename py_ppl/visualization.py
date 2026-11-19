@@ -386,7 +386,7 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
 
 
 #Plot for Preview 6 - export Beamscans
-def plot_e(data, result, reconvolved_norm, args, PGF=False):
+def plot_e(data, result, reconvolved_norm, normalization, args, PGF=False):
 
     if PGF == True:
         export.PGF_plots() #save as PGF otherwise PDF
@@ -399,12 +399,38 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     x_units, y_units = np.meshgrid( np.linspace(0,scanning_length_x,np.max(data[0]) + 1), 
                                     np.linspace(0,scanning_length_y,np.max(data[1]) + 1)) 
 
+
+    #convert zeros in heatmap to NaNs to remove those points from fit:
+    def convert(array):
+        # print(array)
+        for i in range(np.max(data[0]) + 1):
+            for j in range(np.max(data[0]) + 1):
+                if array[i,j] < 0.01:
+                    array[i,j] = np.nan
+        # print(array)
+        return(array)
+    
+    #mask NaNs and apply mask to x- and y-values and heatmap entries:
+    array = convert(result)
+    # print(array)
+    mask = ~np.isnan(array)
+    x = x_units[mask]
+    y = y_units[mask]
+    x2 = np.where(mask, x_units , np.nan)
+    y2 = np.where(mask, y_units , np.nan)
+    masked_data = array[mask]
+    print(np.shape(masked_data))
+
+          
     # fit supergaussian to data
     popt, pcov = curve_fit(
                             super_gaussian_2d
-                            ,(x_units, y_units) # fit data to axis in physical units
-                            ,result.ravel()
-                            ,sigma = np.sqrt(result.ravel())
+                            # ,(x_units, y_units) # fit data to axis in physical units
+                            # ,result.ravel()
+                            # ,sigma = np.sqrt(result.ravel())
+                            ,(x, y) # fit data to axis in physical units
+                            ,masked_data.ravel()
+                            ,sigma = np.sqrt(masked_data.ravel())/normalization
                             ,absolute_sigma = True
                             ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]  # initial_guess for fitting parameters
                             ,maxfev=99999999
@@ -424,6 +450,7 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     
     # use the fitted parameters in supergaus function to calculate z-values for plotting
     Z_true = super_gaussian_2d((x_units, y_units), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).reshape(np.max(data[1]) + 1, np.max(data[1]) + 1)
+    Z_true2 = super_gaussian_2d((x, y), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).ravel()
 
     # set axis boundaries to 6 sigma after fitting for nice plotting
     lower_x = x0_fit-6*sigma_x_fit  #lower x value in cm for plotting
@@ -446,11 +473,19 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
         
         #calculate reduced chi2
         chi2 = np.sum( (data1_clean - data2_clean)**2 / np.sqrt(data2_clean)**2 ) 
-        dofs = len(data1_clean) - len(popt) -1
+        dofs = len(data1_clean) - len(popt) +1
         red_chi = chi2/dofs
         return(red_chi,chi2)
     
     red_chi_SG, chi2_SG = clean_and_chi2(Z_true,result)
+
+    #calculate reduced chi2
+    chi2 = np.sum( (Z_true2 - masked_data.ravel())**2 / (np.sqrt(masked_data.ravel()/normalization)**2) ) 
+    dofs = len(Z_true2) - len(popt) +1
+    red_chi_SG = chi2/dofs
+    print(chi2)
+    print(dofs)
+
     print("Supergaussian red. chi2 is: " + str(round(red_chi_SG,2)))
 
     red_chi_RawReConv, chi2_RawReConv = clean_and_chi2(matrix(data),reconvolved_norm)

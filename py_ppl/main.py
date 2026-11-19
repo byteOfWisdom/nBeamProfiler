@@ -95,6 +95,11 @@ def main():
     result, info = deconv.smart_deconv(matrix(data), scint, args["iterations"])
     print(info)
 
+    print("--------------------")
+    print(np.max(data))
+    normalization = np.max(data)
+    print("--------------------")
+
     #RE-CONVOLUTION
     reconvolved = np.array(conv2(result, scint, mode='same'))
     reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)
@@ -128,7 +133,7 @@ def main():
     if args['preview'] == 5:
             visualization.plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args, PGF=False)
     if args['preview'] == 6:
-            visualization.plot_e(data, result, reconvolved_norm, args, PGF=False)
+            visualization.plot_e(data, result, reconvolved_norm, normalization, args, PGF=False)
 
 if __name__ == "__main__":
     main()
