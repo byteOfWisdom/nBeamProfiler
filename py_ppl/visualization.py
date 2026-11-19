@@ -404,8 +404,8 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
                             super_gaussian_2d
                             ,(x_units, y_units) # fit data to axis in physical units
                             ,result.ravel()
-                            # ,sigma = np.sqrt(result.ravel())
-                            # ,absolute_sigma = True
+                            ,sigma = np.sqrt(result.ravel())
+                            ,absolute_sigma = True
                             ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 1.0, 2,0]  # initial_guess for fitting parameters
                             ,maxfev=99999999
                             ,bounds=(
