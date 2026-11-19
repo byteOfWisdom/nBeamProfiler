@@ -405,7 +405,7 @@ def plot_e(data, result, reconvolved_norm, normalization, args, PGF=False):
         # print(array)
         for i in range(np.max(data[0]) + 1):
             for j in range(np.max(data[0]) + 1):
-                if array[i,j] < 0.01:
+                if array[i,j] == 0.:
                     array[i,j] = np.nan
         # print(array)
         return(array)
