@@ -419,7 +419,7 @@ def plot_e(data, result, reconvolved_norm, normalization, args, PGF=False):
     x2 = np.where(mask, x_units , np.nan)
     y2 = np.where(mask, y_units , np.nan)
     masked_data = array[mask]
-    print(np.shape(masked_data))
+    # print(np.shape(masked_data))
 
           
     # fit supergaussian to data
@@ -483,8 +483,6 @@ def plot_e(data, result, reconvolved_norm, normalization, args, PGF=False):
     chi2 = np.sum( (Z_true2 - masked_data.ravel())**2 / (np.sqrt(masked_data.ravel()/normalization)**2) ) 
     dofs = len(Z_true2) - len(popt) +1
     red_chi_SG = chi2/dofs
-    print(chi2)
-    print(dofs)
 
     print("Supergaussian red. chi2 is: " + str(round(red_chi_SG,2)))
 
