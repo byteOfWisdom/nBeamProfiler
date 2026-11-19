@@ -480,7 +480,7 @@ def plot_e(data, result, reconvolved_norm, normalization, args, PGF=False):
     red_chi_SG, chi2_SG = clean_and_chi2(Z_true,result)
 
     #calculate reduced chi2
-    chi2 = np.sum( (Z_true2 - masked_data.ravel())**2 / (np.sqrt(masked_data.ravel()/normalization)**2) ) 
+    chi2 = np.sum( (Z_true2 - masked_data.ravel())**2 / (np.sqrt(masked_data.ravel())/normalization) **2) 
     dofs = len(Z_true2) - len(popt) +1
     red_chi_SG = chi2/dofs
 

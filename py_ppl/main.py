@@ -96,8 +96,9 @@ def main():
     print(info)
 
     print("--------------------")
-    print(np.max(data))
-    normalization = np.max(data)
+    print(np.max(neutron_hits))
+    print(neutron_hits)
+    normalization = np.max(neutron_hits)
     print("--------------------")
 
     #RE-CONVOLUTION
