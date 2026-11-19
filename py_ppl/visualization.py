@@ -57,6 +57,13 @@ def super_gaussian_1d(x, A, x0, sigma, n, offset):
     # return (A * np.exp(exponent) + offset)
     return (A * np.exp(exponent))
 
+# Calculate supergaussian 1D-FWHM from sigma and n
+def calc_FWHM(sigma, sigma_err, n, n_err):
+    FWHM = 2*sigma * np.sqrt(2) * (np.log(2))**(1/(2*n))
+    FWHM_err = np.sqrt( ( 2*np.sqrt(2)*(np.log(2))**(1/(2*n))  *sigma_err)**2 +  
+                        ( np.sqrt(2)*sigma*np.log(np.log(2))*(np.log(2))**(1/(2*n))   /(n**2)      *n_err)**2 )
+    return FWHM,FWHM_err
+
 
 #Plots for Preview 1 - 2D-Heatmaps
 def plot_a(data, scint, reconvolved_norm, result, args):
@@ -246,6 +253,7 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     # ax.plot(x_plot_supergaus,super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, 1.1955, 2.235, offset_fit), label="Simulated Beam Profile")
     # plt.vlines(x=[-sigma_x_fit, +sigma_x_fit], ymin=0, ymax=super_gaussian_1d(sigma_x_fit,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), colors='red', linestyles='dashed', label='Sigma width')
 
+    FWHM_x, FWHM_x_err = calc_FWHM(sigma_x_fit, sigma_x_error, n_fit, n_error)
 
     def draw_percent_lines(target_percent):
         indices = np.where(np.isclose(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), target_percent*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit)), rtol=1e-3))[0]
@@ -258,13 +266,17 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
                     xmin=x_plot_supergaus[indices[0]],
                     xmax=x_plot_supergaus[indices[-1]],
                     # linestyles='dashed', colors=['green'], label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
-                    linestyles='dashed', label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
+                    # linestyles='dashed', label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
+                    linestyles='dashed', label="FWHM: " + str(round(target_width,3)) + "cm")
     
     #draw horizontal lines at %-level from amplitude
     # draw_percent_lines(0.99)
-    draw_percent_lines(0.90)
-    draw_percent_lines(0.10)
+    # draw_percent_lines(0.90)
+    draw_percent_lines(0.50)
+    # draw_percent_lines(0.10)
     # draw_percent_lines(0.1)
+
+    
 
     ax.grid()
     ax.set_xlabel("x / cm")
@@ -280,6 +292,11 @@ def plot_b(data, result, reconvolved_norm, diff1, diff2, args):
     y_plot_supergaus = np.linspace(y0_fit-6*sigma_y_fit, y0_fit+6*sigma_y_fit, 100)
     ax.plot(y_plot_supergaus,super_gaussian_1d(y_plot_supergaus,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit), label="Fitted Beam Profile")
     # plt.vlines(x=[-sigma_y_fit, +sigma_y_fit], ymin=0, ymax=super_gaussian_1d(sigma_y_fit,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit), colors='red', linestyles='dashed', label='Sigma width')
+    
+    # draw_percent_lines(0.90)
+    draw_percent_lines(0.50)
+    # draw_percent_lines(0.10)
+
     ax.grid()
     ax.set_xlabel("y / cm")
     ax.set_ylabel("normalized intensity")
@@ -550,6 +567,7 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     # ax.plot(x_plot_supergaus,super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, 1.1955, 2.235, offset_fit), label="Simulated Beam Profile")
     # plt.vlines(x=[-sigma_x_fit, +sigma_x_fit], ymin=0, ymax=super_gaussian_1d(sigma_x_fit,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), colors='red', linestyles='dashed', label='Sigma width')
     
+    FWHM_x, FWHM_x_err = calc_FWHM(sigma_x_fit, sigma_x_error, n_fit, n_error)
 
     def draw_percent_lines(target_percent):
         indices = np.where(np.isclose(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit), target_percent*np.max(super_gaussian_1d(x_plot_supergaus,A_fit, x0_fit, sigma_x_fit, n_fit, offset_fit)), rtol=1e-3))[0]
@@ -562,11 +580,13 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
                     xmin=x_plot_supergaus[indices[0]]  -x0_fit,
                     xmax=x_plot_supergaus[indices[-1]] -x0_fit,
                     # linestyles='dashed', colors=['green'], label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
-                    linestyles='dashed', label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
+                    # linestyles='dashed', label=str(target_percent*100) + "% width: " + str(round(target_width,3)) + "cm")
+                    linestyles='dashed', label="FWHM: " + str(round(target_width,3)) + "cm")
 
     #draw horizontal lines at %-level from amplitude
     # draw_percent_lines(0.99)
     # draw_percent_lines(0.90)
+    draw_percent_lines(0.50)
     # draw_percent_lines(0.10)
     # draw_percent_lines(0.1)
 
@@ -589,6 +609,11 @@ def plot_e(data, result, reconvolved_norm, args, PGF=False):
     y_plot_supergaus = np.linspace(y0_fit-6*sigma_y_fit, y0_fit+6*sigma_y_fit, 100)
     plt.plot(y_plot_supergaus-y0_fit,super_gaussian_1d(y_plot_supergaus,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit), label="Fitted Beam Profile")
     # plt.vlines(x=[-sigma_y_fit, +sigma_y_fit], ymin=0, ymax=super_gaussian_1d(sigma_y_fit,A_fit, y0_fit, sigma_y_fit, n_fit, offset_fit), colors='red', linestyles='dashed', label='Sigma width')
+
+    FWHM_y, FWHM_y_err = calc_FWHM(sigma_y_fit, sigma_y_error, n_fit, n_error)
+
+    draw_percent_lines(0.50)
+
     plt.grid()
     plt.xlabel("$y$ / cm")
     plt.ylabel("normalized intensity")
