@@ -488,7 +488,7 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     # red_chi_SG, chi2_SG = clean_and_chi2(Z_true2,result_masked,error_masked)
 
     #calculate reduced chi2
-    chi2 = np.sum( (Z_true2 - result_masked.ravel())**2 / (error_masked) **2) 
+    chi2 = np.sum( (Z_true2 - result_masked)**2 / (error_masked) **2) 
     dofs = len(Z_true2) - len(popt) +1
     red_chi_SG = chi2/dofs
 

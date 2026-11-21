@@ -9,7 +9,7 @@ def deconv_rl(measured, scint, iterations):
     return restoration.richardson_lucy(measured, scint, num_iter=iterations)
 
 # A.I. generated Richardson-Lucy Deconvolution with uncertainty propagation
-def rl_with_uncertainty(image, psf, iterations=20, n_mc=250, read_noise_std=0.0):
+def rl_with_uncertainty(image, psf, iterations=20, n_mc=300, read_noise_std=0.0):
     """
     Computes Richardson-Lucy deconvolution and pixel-wise standard deviation.
     Assumes 'image' is in photon/electron counts (ADU * gain).
@@ -67,4 +67,4 @@ def smart_deconv(measured, scint, iterations, close_to_zero=0.00001):
     # plt.plot(np.abs(delta))
     # plt.show()
     # return deconv_rl(measured, scint, min_deviation), "smart deconv was used"
-    return rl_with_uncertainty(measured, scint, min_deviation), "smart deconv was used"
+    return rl_with_uncertainty(measured, scint, iterations=min_deviation, n_mc=250), "smart deconv was used"
