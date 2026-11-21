@@ -95,17 +95,10 @@ def main():
     result, info = deconv.smart_deconv(matrix(data), scint, args["iterations"])
     print(info)
 
-    print("--------------------")
-    print(np.max(neutron_hits))
-    print(neutron_hits)
-    normalization = np.max(neutron_hits)
-    print("--------------------")
-
     #RE-CONVOLUTION
-    reconvolved = np.array(conv2(result, scint, mode='same'))
+    reconvolved = np.array(conv2(result[0], scint, mode='same'))
     reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)
     print("---- Re-convolution successful ----")
-
 
     csv_data = to_csv(result)
     if args['out_file'] != "":
@@ -127,14 +120,14 @@ def main():
     if args['preview'] == 4:
         visualization.plot_c(time_edges, neutron_hits, timing_pulses, long_data, short_data, args)
     if args['preview'] == 1 or args['preview'] == 3 or args['preview'] == 4:
-        visualization.plot_a(data, scint, reconvolved_norm, result, args)
+        visualization.plot_a(data, scint, reconvolved_norm, result[0], args)
     if args['preview'] == 2 or args['preview'] == 3 or args['preview'] == 4:
         diff1, diff2 = [], []
-        visualization.plot_b(data, result, reconvolved_norm, diff1, diff2, args)
+        visualization.plot_b(data, result[0], reconvolved_norm, diff1, diff2, args)
     if args['preview'] == 5:
             visualization.plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args, PGF=False)
     if args['preview'] == 6:
-            visualization.plot_e(data, result, reconvolved_norm, normalization, args, PGF=False)
+            visualization.plot_e(data, result[0], reconvolved_norm, result[1], args, PGF=False)
 
 if __name__ == "__main__":
     main()
