@@ -79,7 +79,7 @@ def main():
                                                                      args['data_channel'],
                                                                      args['n_gamma_cut'])
 
-    data = data_loading.hits_to_fluency(neutron_hits, timing_pulses, args['lines'], args['dt_timing'])
+    data, norm_constant = data_loading.hits_to_fluency(neutron_hits, timing_pulses, args['lines'], args['dt_timing'])
     long_data , short_data = data_loading.PSD_Heatmap(data_file)
     neutron_hits, time_edges = np.histogram(neutron_hits.time, args['lines'] ** 2)
 
@@ -92,8 +92,12 @@ def main():
     print("---- generating scintillator mask ----")
     scint = square_scint.square_scint(args["lines"], args["scint_size"], args['size'], args['scint_amp_mod'])
     print("---- running deconvolution ----")
-    result, info = deconv.smart_deconv(matrix(data), scint, args["iterations"])
+    result, info = deconv.smart_deconv(matrix(data), scint, args["iterations"], norm_constant)
     print(info)
+
+    print("Normalization constant is: " + str(norm_constant))
+    print(np.min(result[1]))
+    print(np.max(result[1]))
 
     #RE-CONVOLUTION
     reconvolved = np.array(conv2(result[0], scint, mode='same'))

@@ -6,20 +6,20 @@ from matplotlib import pyplot as plt
 
 # Richardson-Lucy Deconvolution algorithm from skimage package
 def deconv_rl(measured, scint, iterations):
-    return restoration.richardson_lucy(measured, scint, num_iter=iterations)
+    return restoration.richardson_lucy(measured, scint, num_iter=iterations, clip=False)
 
 # A.I. generated Richardson-Lucy Deconvolution with uncertainty propagation
 # - deconvolute your image 'iterations'-times obtain your result 
 # - create 'n_mc' synthetic datasets by sampling from Poisson distribution
 # - deconvolute synthetic samples using identical parameters
 # - calculate pixel-wise standard deviation
-def rl_with_uncertainty(image, psf, iterations=20, n_mc=200, read_noise_std=0.0):
+def rl_with_uncertainty(image, psf, iterations=20, n_mc=500, norm_factor=1.0, read_noise_std=0.0):
     """
     Computes Richardson-Lucy deconvolution and pixel-wise standard deviation.
     Assumes 'image' is in photon/electron counts (ADU * gain).
     """
     # 1. Primary deconvolution
-    deconv_main = restoration.richardson_lucy(image, psf, num_iter=iterations, clip=True)
+    deconv_main = restoration.richardson_lucy(image, psf, num_iter=iterations, clip=False)
     
     # 2. Online variance accumulation (Welford's algorithm)
     rng = np.random.default_rng(seed=42) # set random seed for reproducable results
@@ -27,7 +27,7 @@ def rl_with_uncertainty(image, psf, iterations=20, n_mc=200, read_noise_std=0.0)
     m2 = np.zeros_like(deconv_main, dtype=np.float64)
     
     # Ensure non-negative rate for Poisson sampling
-    rate = np.clip(image, 0, None)
+    rate = np.clip(image*norm_factor, 0, None)
     
     for i in range(1, n_mc + 1):
         # Simulate noisy observation
@@ -36,7 +36,7 @@ def rl_with_uncertainty(image, psf, iterations=20, n_mc=200, read_noise_std=0.0)
             sim_image += rng.normal(0, read_noise_std, size=image.shape)
             
         # Deconvolve using identical parameters
-        sim_deconv = restoration.richardson_lucy(sim_image, psf, num_iter=iterations, clip=True)
+        sim_deconv = restoration.richardson_lucy(sim_image, psf, num_iter=iterations, clip=False)
         
         # Update running mean and sum of squared differences
         delta = sim_deconv - mean
@@ -44,7 +44,7 @@ def rl_with_uncertainty(image, psf, iterations=20, n_mc=200, read_noise_std=0.0)
         delta2 = sim_deconv - mean
         m2 += delta * delta2
 
-    pixel_std = np.sqrt(m2 / (n_mc - 1))
+    pixel_std = np.sqrt(m2 / (n_mc - 1)) / norm_factor
     print(str(iterations) + " were performed to calculate the Unfolding uncertainty")
     return deconv_main, pixel_std
 
@@ -56,7 +56,7 @@ def residuals(measured, deconv_res, scint):
     return np.sum(np.abs(measured - reconv) ** 2)
 
 # iterate with Richardson-Lucy algorithm until the sum of residuals between iteration steps deviate less then a cutoff value
-def smart_deconv(measured, scint, iterations, close_to_zero=0.00001):
+def smart_deconv(measured, scint, iterations, normConstant=1.0, close_to_zero=0.00001):
     iter_residuals = [residuals(measured, deconv_rl(measured, scint, n), scint) for n in range(iterations)]
     delta = np.abs(np.gradient(iter_residuals))
     delta *= 1 / max(delta)
@@ -71,4 +71,4 @@ def smart_deconv(measured, scint, iterations, close_to_zero=0.00001):
     # plt.plot(np.abs(delta))
     # plt.show()
     # return deconv_rl(measured, scint, min_deviation), "smart deconv was used"
-    return rl_with_uncertainty(measured, scint, iterations=min_deviation, n_mc=250), "smart deconv was used"
+    return rl_with_uncertainty(measured, scint, iterations=min_deviation, n_mc=250, norm_factor=normConstant), "smart deconv was used"

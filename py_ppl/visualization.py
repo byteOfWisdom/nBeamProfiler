@@ -405,20 +405,21 @@ def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
         # print(array)
         for i in range(np.max(data[0]) + 1):
             for j in range(np.max(data[0]) + 1):
-                if array[i,j] == 0.:
+                if array[i,j] < 0.01:
                     array[i,j] = np.nan
         # print(array)
         return(array)
 
     #mask NaNs and apply mask to x- and y-values and heatmap entries:
-    array = convert(deconv_error)
+    array = convert(result)
+    # array = convert(deconv_error)
     mask = ~np.isnan(array)
     result_masked = result[mask]
     error_masked = deconv_error[mask]
     x_masked = x_units[mask]
     y_masked = y_units[mask]
     
-    # print(np.shape(result_masked))  # DEBUG: Check shape of array
+    print(np.shape(result_masked))  # DEBUG: Check shape of array
 
     # fit 2D-supergaussian to data
     popt, pcov = curve_fit(
@@ -489,7 +490,7 @@ def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
     dofs = len(Z_true2) - len(popt) +1 # +1 because fitting parameters still contain 'offset', which is not used in the current state of the fitting function
     red_chi_SG = chi2/dofs
 
-    print("Supergaussian red. chi2 is: " + str(round(red_chi_SG,2)))
+    print("Supergaussian red. chi2 is: " + str(round(red_chi_SG,3)))
 
     # red_chi_RawReConv, chi2_RawReConv = clean_and_chi2(matrix(data),reconvolved_norm)
     # print("Raw-ReConvolved chi2 is: " + str(round(chi2_RawReConv,2)))
