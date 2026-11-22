@@ -307,7 +307,8 @@ def hits_to_fluency(neutron_hits, timing_pulses, line_count, dt_timing=0.0):
         timeborders = np.linspace(start, end, line_count + 1)
         for i in range(0, line_count):
             mask = (times >= timeborders[i]) & (times <= timeborders[i + 1])
-            fluencies.append(len(times[mask]) / delta_t)
+            # fluencies.append(len(times[mask]) / delta_t)
+            fluencies.append(len(times[mask]) )                     # only the uncertainty of bare counts is poisson distributed
             # x_points.append(i if fwd else line_count - i - 1)
             # y_points.append(current_line)
             y_points.append(i if fwd else line_count - i - 1)
@@ -316,8 +317,10 @@ def hits_to_fluency(neutron_hits, timing_pulses, line_count, dt_timing=0.0):
         current_line += 1
         fwd = not fwd
 
-    fluencies = list(np.array(fluencies) / max(fluencies))
+    # fluencies = list(np.array(fluencies) / max(fluencies))
+    neutron_counts_binned = list(np.array(fluencies))
 
     # write result
     # csv_print(argv[2], x_points, y_points, fluencies)
-    return (x_points, y_points, fluencies)
+    # return (x_points, y_points, fluencies)
+    return (x_points, y_points, neutron_counts_binned)
