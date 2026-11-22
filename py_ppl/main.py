@@ -95,6 +95,13 @@ def main():
     result, info = deconv.smart_deconv(matrix(data), scint, args["iterations"])
     print(info)
 
+
+    print("Minimum neutron count is: " + str(np.min(matrix(data))))
+    print("Maximum neutron count is: " + str(np.max(matrix(data))))
+    print("Minimum uncertainty is: " + str(np.min(result[1])))
+    print("Maximum uncertainty is: " + str(np.max(result[1])))
+    # print(result)
+
     #RE-CONVOLUTION
     reconvolved = np.array(conv2(result[0], scint, mode='same'))
     reconvolved_norm = np.array(reconvolved) / np.amax(reconvolved)

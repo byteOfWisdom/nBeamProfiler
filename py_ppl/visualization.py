@@ -415,16 +415,16 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     
 
     #mask NaNs and apply mask to x- and y-values and heatmap entries:
-    array = convert(error)
+    array = convert(matrix(data))
+    # array = convert(result)
+    # array = convert(error)
     mask = ~np.isnan(array)
     result_masked = result[mask]
     error_masked = error[mask]
     x_masked = x_units[mask]
     y_masked = y_units[mask]
     
-    print(np.shape(result_masked))
-
-    
+    # print(np.shape(result_masked))
           
     # fit supergaussian to data
     popt, pcov = curve_fit(
@@ -436,11 +436,11 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
                             ,result_masked.ravel()
                             ,sigma = error_masked.ravel()
                             ,absolute_sigma = True
-                            ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 2.0, 2,0]  # initial_guess for fitting parameters
+                            ,p0=[np.max(result_masked), scanning_length_x/2, scanning_length_y/2, 1.0, 2.0, 2,0]  # initial_guess for fitting parameters
                             ,maxfev=99999999
                             ,bounds=(
                                     [0, 5, 5, 0.1, 0.1, 1,0],  # lower bounds of fitting parameters
-                                    [1, scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf]    # upper bounds of fitting parameters
+                                    [np.max(result_masked), scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf]    # upper bounds of fitting parameters
                                     )
                             )
     
@@ -463,26 +463,26 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     upper_y = y0_fit+6*sigma_y_fit  #upper x value in cm for plotting
 
     # clean data from zeros because we assume error=sqrt(data2) and divide by this when doing red. chi2
-    def clean_and_chi2(data1,data2,error): #data2 = the one with error on its values
-        data1_clean = []
-        data2_clean = []
-        data_error = []
-        for i in range(len(data1)):
-            for j in range(len(data1[0])):
-                if data1[i][j] > 0 and data2[i][j]>0:
-                    data1_clean += [data1[i][j]]
-                    data2_clean += [data2[i][j]]
-                    data_error += [error[i][j]]
+    # def clean_and_chi2(data1,data2,error): #data2 = the one with error on its values
+    #     data1_clean = []
+    #     data2_clean = []
+    #     data_error = []
+    #     for i in range(len(data1)):
+    #         for j in range(len(data1[0])):
+    #             if data1[i][j] > 0 and data2[i][j]>0:
+    #                 data1_clean += [data1[i][j]]
+    #                 data2_clean += [data2[i][j]]
+    #                 data_error += [error[i][j]]
 
-        data1_clean = np.asarray(data1_clean).flatten()
-        data2_clean = np.asarray(data2_clean).flatten()
-        data_error = np.asarray(data_error).flatten()
+    #     data1_clean = np.asarray(data1_clean).flatten()
+    #     data2_clean = np.asarray(data2_clean).flatten()
+    #     data_error = np.asarray(data_error).flatten()
         
-        #calculate reduced chi2
-        chi2 = np.sum( (data1_clean - data2_clean)**2 / np.sqrt(data_error)**2 ) 
-        dofs = len(data1_clean) - len(popt) +1
-        red_chi = chi2/dofs
-        return(red_chi,chi2)
+    #     #calculate reduced chi2
+    #     chi2 = np.sum( (data1_clean - data2_clean)**2 / np.sqrt(data_error)**2 ) 
+    #     dofs = len(data1_clean) - len(popt) +1
+    #     red_chi = chi2/dofs
+    #     return(red_chi,chi2)
     
     # red_chi_SG, chi2_SG = clean_and_chi2(Z_true,result,error)
     # red_chi_SG, chi2_SG = clean_and_chi2(Z_true2,result_masked,error_masked)
@@ -531,7 +531,7 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     ax.contour(x_lines, y_lines, matrix(data), levels=100, axlim_clip=True)
     ax.contourf(x_lines, y_lines, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/scanning_length_x, levels=300, cmap='rainbow', axlim_clip=True)
     ax.contourf(x_lines, y_lines, matrix(data), zdir='y', offset=upper_y*(np.max(data[0])+1)/scanning_length_y, levels=300, cmap='rainbow', axlim_clip=True)
-    ax.set_zlim(0,1.1)
+    # ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x*(np.max(data[0])+1)/scanning_length_x, upper_x*(np.max(data[0])+1)/scanning_length_x) #x-axis in lines instead of cm
     ax.set_ylim(lower_y*(np.max(data[0])+1)/scanning_length_y, upper_y*(np.max(data[0])+1)/scanning_length_y) #y-axis in lines instead of cm
     ax.set_xlabel("x / lines")
@@ -550,7 +550,7 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     ax.contour(x_units, y_units, result, levels=100, axlim_clip=True)
     ax.contourf(x_units, y_units, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
     ax.contourf(x_units, y_units, result, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
-    ax.set_zlim(0,1.1)
+    # ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x,upper_x)
     ax.set_ylim(lower_y,upper_y)
     ax.set_xlabel("x / cm")
@@ -569,7 +569,7 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     ax.contour(x_units, y_units, reconvolved_norm, levels=300, axlim_clip=True)
     ax.contourf(x_units, y_units, reconvolved_norm, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
     ax.contourf(x_units, y_units, reconvolved_norm, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
-    ax.set_zlim(0,1.1)
+    # ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x,upper_x)
     ax.set_ylim(lower_y,upper_y)
     ax.set_xlabel("x / cm")
@@ -597,7 +597,7 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
 
     # Set legend for ax and labels
     ax.legend(loc='best',handlelength=0, handletextpad=0, fontsize=8)
-    ax.set_zlim(0,1.1)
+    # ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x,upper_x)
     ax.set_ylim(lower_y,upper_y)
     ax.set_xlabel("x / cm")

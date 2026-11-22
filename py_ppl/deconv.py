@@ -1,48 +1,39 @@
 from skimage import restoration
 import numpy as np
 from scipy.signal import convolve2d as conv2
+from scipy.signal import fftconvolve, convolve2d
 from matplotlib import pyplot as plt
 
+def input_variance(data, psf, x_hat, mode="model"):
+    """Poisson-Varianz der Eingangsdaten pro Pixel.
+
+    mode="data":  Var = d  (Standard bei Poisson, aber bei 0 Counts exakt 0
+                  -> unterschätzt die Unsicherheit in leeren Bins!)
+    mode="model": Var = (A x_hat)_i, also die erwartete Zählrate laut Modell.
+                  Leere Bins bekommen eine kleine, aber positive Varianz.
+                  Das ist bei vielen Nullen die bessere Wahl.
+    """
+    if mode == "data":
+        return data.astype(float)
+    psf = psf / psf.sum()
+    return np.clip(fftconvolve(x_hat, psf, mode="same"), 0, None)
 
 # Richardson-Lucy Deconvolution algorithm from skimage package
 def deconv_rl(measured, scint, iterations):
-    return restoration.richardson_lucy(measured, scint, num_iter=iterations)
+    return restoration.richardson_lucy(measured, scint, num_iter=iterations, clip=False)
 
 # A.I. generated Richardson-Lucy Deconvolution with uncertainty propagation
-def rl_with_uncertainty(image, psf, iterations=20, n_mc=300, read_noise_std=0.0):
-    """
-    Computes Richardson-Lucy deconvolution and pixel-wise standard deviation.
-    Assumes 'image' is in photon/electron counts (ADU * gain).
-    """
-    # 1. Primary deconvolution
-    deconv_main = restoration.richardson_lucy(image, psf, num_iter=iterations, clip=True)
+def rl_with_uncertainty(image, psf, iterations=20, n_mc=300, read_noise_std=0.0, seed=42, variance="model"):
     
-    # 2. Online variance accumulation (Welford's algorithm)
-    rng = np.random.default_rng(seed=42)
-    mean = np.zeros_like(deconv_main, dtype=np.float64)
-    m2 = np.zeros_like(deconv_main, dtype=np.float64)
-    
-    # Ensure non-negative rate for Poisson sampling
-    rate = np.clip(image, 0, None)
-    
-    for i in range(1, n_mc + 1):
-        # Simulate noisy observation
-        sim_image = rng.poisson(rate).astype(np.float64)
-        if read_noise_std > 0:
-            sim_image += rng.normal(0, read_noise_std, size=image.shape)
-            
-        # Deconvolve using identical parameters
-        sim_deconv = restoration.richardson_lucy(sim_image, psf, num_iter=iterations, clip=True)
-        
-        # Update running mean and sum of squared differences
-        delta = sim_deconv - mean
-        mean += delta / i
-        delta2 = sim_deconv - mean
-        m2 += delta * delta2
+    rng = np.random.default_rng(seed)
+    x_hat = restoration.richardson_lucy(image.astype(float), psf, iterations, clip=False)
+    lam = input_variance(image, psf, x_hat, variance)
+    samples = np.empty((n_mc,) + image.shape)
+    for i in range(n_mc):
+        samples[i] = restoration.richardson_lucy(rng.poisson(lam).astype(float), psf, iterations, clip=False)
+    return samples.mean(axis=0), samples.std(axis=0, ddof=1)
 
-    pixel_std = np.sqrt(m2 / (n_mc - 1))
-    print(str(iterations) + " were performed to calculate the Unfolding uncertainty")
-    return deconv_main, pixel_std
+
 
 # Re-convolve Deconvolution, compare with measured data and calculate sum of residuals
 def residuals(measured, deconv_res, scint):
@@ -67,4 +58,4 @@ def smart_deconv(measured, scint, iterations, close_to_zero=0.00001):
     # plt.plot(np.abs(delta))
     # plt.show()
     # return deconv_rl(measured, scint, min_deviation), "smart deconv was used"
-    return rl_with_uncertainty(measured, scint, iterations=min_deviation, n_mc=250), "smart deconv was used"
+    return rl_with_uncertainty(measured, scint, iterations=min_deviation, n_mc=200), "smart deconv was used"
