@@ -14,14 +14,14 @@ scanning_length_x = 30 #cm
 scanning_length_y = 30 #cm
 
 # Parameter and functions to convert channel numbers in energy
-a = 3.89724561e+04      #fitparameter from energy_calibration.py
+a = 3.89724561e+04      # fitparameter from energy_calibration.py
 b = 3.63842683e-01
 c = -1.00000000e+00
 def MeV2channel_log(x):
     return a * np.log(b*x+1) + c*x # fitfunction from https://doi.org/10.1016/j.nima.2017.04.028
 
 def channel2MeV_log(x):
-    return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real #thanks wolfram alpha!
+    return ( (a*b*  scipy.special.lambertw( c*np.exp( c/(a*b) + x/a) /(a*b)  ) - c )  / (b*c) ).real # thanks Wolfram Alpha for calculating the inverse function!
 
 def matrix(arr):
     xdim = max(arr[0])
@@ -39,11 +39,10 @@ def super_gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, n, offset):
     sigma_x = abs(sigma_x)
     sigma_y = abs(sigma_y)
     n = abs(n)
-    # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n)              #rectangular gaussian beam 
-    # exponent = -( ( (x - x0)/(2*sigma_x) )  **2   + ( (y - y0)/(2*sigma_y) )**2 ) ** n       #elliptical gaussian beam, thanks wikipedia :) before typo!!!!!!
-    exponent = -( ( (x - x0)**2/(2*sigma_x**2) )   + ( (y - y0)**2/(2*sigma_y**2) ) ) ** n       #elliptical gaussian beam, thanks wikipedia :)
-    # return (A * np.exp(exponent) + offset).ravel()  #with offset
-    return (A * np.exp(exponent)).ravel()  #without offset
+    # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n)             # rectangular gaussian beam 
+    exponent = -( ( (x - x0)**2/(2*sigma_x**2) )   + ( (y - y0)**2/(2*sigma_y**2) ) ) ** n  # elliptical gaussian beam, thanks Wikipedia :)
+    # return (A * np.exp(exponent) + offset).ravel()                                        # with offset
+    return (A * np.exp(exponent)).ravel()                                                   # offset is not used
 
 
 #Define the 1D super-Gaussian model for projection plotting
@@ -51,17 +50,16 @@ def super_gaussian_1d(x, A, x0, sigma, n, offset):
     # Ensure sigma values and exponent are positive
     sigma = abs(sigma)
     n = abs(n)
-    # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n)              #rectangular gaussian beam 
-    # exponent = -( ( (x - x0)/(2*sigma) )  **2 ) ** n                                         #elliptical gaussian beam, thanks wikipedia :)
-    exponent = -(  (x - x0)**2/(2*sigma**2)  ) ** n 
-    # return (A * np.exp(exponent) + offset)
-    return (A * np.exp(exponent))
+    # exponent = -((x - x0) / sigma_x) ** (2*n) - ((y - y0) / sigma_y) ** (2*n) # rectangular gaussian beam 
+    exponent = -(  (x - x0)**2/(2*sigma**2)  ) ** n                             # elliptical gaussian beam, thanks Wikipedia :)
+    # return (A * np.exp(exponent) + offset)                                    # with offset
+    return (A * np.exp(exponent))                                               # offset is not used
 
-# Calculate supergaussian 1D-FWHM from sigma and n
+# Calculate supergaussian 1D-FWHM from sigma and n - thanks again Wolfram Alpha!
 def calc_FWHM(sigma, sigma_err, n, n_err):
-    FWHM = 2*sigma * np.sqrt(2) * (np.log(2))**(1/(2*n))
-    FWHM_err = np.sqrt( ( 2*np.sqrt(2)*(np.log(2))**(1/(2*n))  *sigma_err)**2 +  
-                        ( np.sqrt(2)*sigma*np.log(np.log(2))*(np.log(2))**(1/(2*n))   /(n**2)      *n_err)**2 )
+    FWHM     = 2*sigma * np.sqrt(2) * ( np.log(2))**(1/(2*n) )
+    FWHM_err = np.sqrt( ( 2 * np.sqrt(2) * ( np.log(2))**(1/(2*n) ) * sigma_err)**2 +                           # dFWHM/dsigma
+                        ( np.sqrt(2) * sigma * np.log(np.log(2)) * (np.log(2))**(1/(2*n))/(n**2) *n_err)**2 )   # dFWHM/dn
     return FWHM,FWHM_err
 
 
@@ -386,7 +384,7 @@ def plot_d(time_edges, neutron_hits, timing_pulses, long_data, short_data, args,
 
 
 #Plot for Preview 6 - export Beamscans
-def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
+def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
 
     if PGF == True:
         export.PGF_plots() #save as PGF otherwise PDF
@@ -399,9 +397,10 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     x_units, y_units = np.meshgrid( np.linspace(0,scanning_length_x,np.max(data[0]) + 1), 
                                     np.linspace(0,scanning_length_y,np.max(data[1]) + 1)) 
 
-    error = errors
+    # uncertainties for deconvoluted values must be passed
+    deconv_error = errors
 
-    #convert zeros in heatmap to NaNs to remove those points from fit:
+    #convert zeros in heatmap to NaNs to remove those points from fit by masking:
     def convert(array):
         # print(array)
         for i in range(np.max(data[0]) + 1):
@@ -411,36 +410,31 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
         # print(array)
         return(array)
 
-    # error = np.sqrt(matrix(data))* (result/matrix(data))
-    
-
     #mask NaNs and apply mask to x- and y-values and heatmap entries:
-    array = convert(error)
+    array = convert(deconv_error)
     mask = ~np.isnan(array)
     result_masked = result[mask]
-    error_masked = error[mask]
+    error_masked = deconv_error[mask]
     x_masked = x_units[mask]
     y_masked = y_units[mask]
     
-    print(np.shape(result_masked))
+    # print(np.shape(result_masked))  # DEBUG: Check shape of array
 
-    
-          
-    # fit supergaussian to data
+    # fit 2D-supergaussian to data
     popt, pcov = curve_fit(
                             super_gaussian_2d
                             # ,(x_units, y_units) # fit data to axis in physical units
                             # ,result.ravel()
                             # ,sigma = error.ravel()
-                            ,(x_masked, y_masked) # fit data to axis in physical units
+                            ,(x_masked, y_masked) # fit masked data to axis in physical units
                             ,result_masked.ravel()
                             ,sigma = error_masked.ravel()
                             ,absolute_sigma = True
                             ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 2.0, 2,0]  # initial_guess for fitting parameters
                             ,maxfev=99999999
                             ,bounds=(
-                                    [0, 5, 5, 0.1, 0.1, 1,0],  # lower bounds of fitting parameters
-                                    [1, scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf]    # upper bounds of fitting parameters
+                                    [0, 5, 5, 0.1, 0.1, 1,0],                                           # lower bounds of fitting parameters
+                                    [1, scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf] # upper bounds of fitting parameters
                                     )
                             )
     
@@ -449,12 +443,13 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     # calculate fitted parameters-error
     A_error, x0_error, y0_error, sigma_x_error, sigma_y_error, n_error, offset_error = np.sqrt(np.diag(pcov))
 
+    # calculate FWHM for x- and y-direction
     FWHM_x, FWHM_x_err = calc_FWHM(sigma_x_fit, sigma_x_error, n_fit, n_error)
     FWHM_y, FWHM_y_err = calc_FWHM(sigma_y_fit, sigma_y_error, n_fit, n_error)
     
     # use the fitted parameters in supergaus function to calculate z-values for plotting
     Z_true = super_gaussian_2d((x_units, y_units), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).reshape(np.max(data[1]) + 1, np.max(data[1]) + 1)
-    Z_true2 = super_gaussian_2d((x_masked, y_masked), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).ravel()
+    Z_true2 = super_gaussian_2d((x_masked, y_masked), A_fit, x0_fit, y0_fit, sigma_x_fit, sigma_y_fit, n_fit, offset_fit).ravel() # for calculating red. chi2
 
     # set axis boundaries to 6 sigma after fitting for nice plotting
     lower_x = x0_fit-6*sigma_x_fit  #lower x value in cm for plotting
@@ -463,33 +458,35 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     upper_y = y0_fit+6*sigma_y_fit  #upper x value in cm for plotting
 
     # clean data from zeros because we assume error=sqrt(data2) and divide by this when doing red. chi2
-    def clean_and_chi2(data1,data2,error): #data2 = the one with error on its values
-        data1_clean = []
-        data2_clean = []
-        data_error = []
-        for i in range(len(data1)):
-            for j in range(len(data1[0])):
-                if data1[i][j] > 0 and data2[i][j]>0:
-                    data1_clean += [data1[i][j]]
-                    data2_clean += [data2[i][j]]
-                    data_error += [error[i][j]]
+    # WE ALREADY REMOVED ZEROS IN THE MASKING STEP ABOVE
+    # THIS IS OLD CODE - CAN IT BE REMOVED?
+    # def clean_and_chi2(data1,data2,error): #data2 = the one with error on its values
+    #     data1_clean = []
+    #     data2_clean = []
+    #     data_error = []
+    #     for i in range(len(data1)):
+    #         for j in range(len(data1[0])):
+    #             if data1[i][j] > 0 and data2[i][j]>0:
+    #                 data1_clean += [data1[i][j]]
+    #                 data2_clean += [data2[i][j]]
+    #                 data_error += [error[i][j]]
 
-        data1_clean = np.asarray(data1_clean).flatten()
-        data2_clean = np.asarray(data2_clean).flatten()
-        data_error = np.asarray(data_error).flatten()
+    #     data1_clean = np.asarray(data1_clean).flatten()
+    #     data2_clean = np.asarray(data2_clean).flatten()
+    #     data_error = np.asarray(data_error).flatten()
         
-        #calculate reduced chi2
-        chi2 = np.sum( (data1_clean - data2_clean)**2 / np.sqrt(data_error)**2 ) 
-        dofs = len(data1_clean) - len(popt) +1
-        red_chi = chi2/dofs
-        return(red_chi,chi2)
+    #     #calculate reduced chi2
+    #     chi2 = np.sum( (data1_clean - data2_clean)**2 / np.sqrt(data_error)**2 ) 
+    #     dofs = len(data1_clean) - len(popt) +1
+    #     red_chi = chi2/dofs
+    #     return(red_chi,chi2)
     
     # red_chi_SG, chi2_SG = clean_and_chi2(Z_true,result,error)
     # red_chi_SG, chi2_SG = clean_and_chi2(Z_true2,result_masked,error_masked)
 
     #calculate reduced chi2
-    chi2 = np.sum( (Z_true2 - result_masked)**2 / (error_masked) **2) 
-    dofs = len(Z_true2) - len(popt) +1
+    chi2 = np.sum( (Z_true2 - result_masked)**2 / (error_masked)**2) 
+    dofs = len(Z_true2) - len(popt) +1 # +1 because fitting parameters still contain 'offset', which is not used in the current state of the fitting function
     red_chi_SG = chi2/dofs
 
     print("Supergaussian red. chi2 is: " + str(round(red_chi_SG,2)))
@@ -501,9 +498,12 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
     print("------------------------------------")
     print("Fitted parameters for Supergaussian:")
     print(
-    'A=' + str(round(A_fit, A_error, sep='external_brackets'))+', ' + 'offset=' + str(round(offset_fit, offset_error, sep='external_brackets'))+', \n'
-    'x0=' + str(round(x0_fit, x0_error, sep='external_brackets'))+'cm, ' + 'y0=' + str(round(y0_fit, y0_error, sep='external_brackets'))+'cm, \n'
-    'sigma_x=' + str(round(sigma_x_fit, sigma_x_error, sep='external_brackets'))+'cm, ' + 'sigma_y=' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets'))+'cm, \n'
+    'A=' + str(round(A_fit, A_error, sep='external_brackets')) + ', \n' +
+    'offset=' + str(round(offset_fit, offset_error, sep='external_brackets')) + ', \n' +
+    'x0=' + str(round(x0_fit, x0_error, sep='external_brackets')) + 'cm, \n' +
+    'y0=' + str(round(y0_fit, y0_error, sep='external_brackets')) + 'cm, \n' +
+    'sigma_x=' + str(round(sigma_x_fit, sigma_x_error, sep='external_brackets')) + 'cm, \n' +
+    'sigma_y=' + str(round(sigma_y_fit, sigma_y_error, sep='external_brackets')) + 'cm, \n' +
     'n=' + str(round(n_fit, n_error, sep='external_brackets'))
          )
     

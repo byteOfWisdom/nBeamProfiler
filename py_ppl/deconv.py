@@ -9,7 +9,11 @@ def deconv_rl(measured, scint, iterations):
     return restoration.richardson_lucy(measured, scint, num_iter=iterations)
 
 # A.I. generated Richardson-Lucy Deconvolution with uncertainty propagation
-def rl_with_uncertainty(image, psf, iterations=20, n_mc=300, read_noise_std=0.0):
+# - deconvolute your image 'iterations'-times obtain your result 
+# - create 'n_mc' synthetic datasets by sampling from Poisson distribution
+# - deconvolute synthetic samples using identical parameters
+# - calculate pixel-wise standard deviation
+def rl_with_uncertainty(image, psf, iterations=20, n_mc=200, read_noise_std=0.0):
     """
     Computes Richardson-Lucy deconvolution and pixel-wise standard deviation.
     Assumes 'image' is in photon/electron counts (ADU * gain).
@@ -18,7 +22,7 @@ def rl_with_uncertainty(image, psf, iterations=20, n_mc=300, read_noise_std=0.0)
     deconv_main = restoration.richardson_lucy(image, psf, num_iter=iterations, clip=True)
     
     # 2. Online variance accumulation (Welford's algorithm)
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng(seed=42) # set random seed for reproducable results
     mean = np.zeros_like(deconv_main, dtype=np.float64)
     m2 = np.zeros_like(deconv_main, dtype=np.float64)
     
