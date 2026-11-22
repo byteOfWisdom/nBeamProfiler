@@ -405,7 +405,7 @@ def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
         # print(array)
         for i in range(np.max(data[0]) + 1):
             for j in range(np.max(data[0]) + 1):
-                if array[i,j] < 0.01:
+                if array[i,j] == 0.:
                     array[i,j] = np.nan
         # print(array)
         return(array)
@@ -431,11 +431,11 @@ def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
                             ,result_masked.ravel()
                             ,sigma = error_masked.ravel()
                             ,absolute_sigma = True
-                            ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 2.0, 2,0]  # initial_guess for fitting parameters
-                            ,maxfev=99999999
+                            ,p0=[1, scanning_length_x/2, scanning_length_y/2, 1.0, 2.0, 2, 0]  # initial_guess for fitting parameters
+                            ,maxfev=99999
                             ,bounds=(
                                     [0, 5, 5, 0.1, 0.1, 1,0],                                           # lower bounds of fitting parameters
-                                    [1, scanning_length_x-1, scanning_length_y-1, 100, 100, 100,np.inf] # upper bounds of fitting parameters
+                                    [np.max(result_masked.ravel()), scanning_length_x-1, scanning_length_y-1, 100, 100, 5,5] # upper bounds of fitting parameters
                                     )
                             )
     
@@ -532,7 +532,7 @@ def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
     ax.contour(x_lines, y_lines, matrix(data), levels=100, axlim_clip=True)
     ax.contourf(x_lines, y_lines, matrix(data), zdir='x', offset=lower_x*(np.max(data[0])+1)/scanning_length_x, levels=300, cmap='rainbow', axlim_clip=True)
     ax.contourf(x_lines, y_lines, matrix(data), zdir='y', offset=upper_y*(np.max(data[0])+1)/scanning_length_y, levels=300, cmap='rainbow', axlim_clip=True)
-    ax.set_zlim(0,1.1)
+    # ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x*(np.max(data[0])+1)/scanning_length_x, upper_x*(np.max(data[0])+1)/scanning_length_x) #x-axis in lines instead of cm
     ax.set_ylim(lower_y*(np.max(data[0])+1)/scanning_length_y, upper_y*(np.max(data[0])+1)/scanning_length_y) #y-axis in lines instead of cm
     ax.set_xlabel("x / lines")
@@ -551,7 +551,7 @@ def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
     ax.contour(x_units, y_units, result, levels=100, axlim_clip=True)
     ax.contourf(x_units, y_units, result, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
     ax.contourf(x_units, y_units, result, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
-    ax.set_zlim(0,1.1)
+    # ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x,upper_x)
     ax.set_ylim(lower_y,upper_y)
     ax.set_xlabel("x / cm")
@@ -570,7 +570,7 @@ def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
     ax.contour(x_units, y_units, reconvolved_norm, levels=300, axlim_clip=True)
     ax.contourf(x_units, y_units, reconvolved_norm, zdir='x', offset=lower_x, levels=300, cmap='rainbow', axlim_clip=True)
     ax.contourf(x_units, y_units, reconvolved_norm, zdir='y', offset=upper_y, levels=300, cmap='rainbow', axlim_clip=True)
-    ax.set_zlim(0,1.1)
+    # ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x,upper_x)
     ax.set_ylim(lower_y,upper_y)
     ax.set_xlabel("x / cm")
@@ -598,7 +598,7 @@ def plot_e(data, result, reconvolved_norm, errors, args, PGF=False):
 
     # Set legend for ax and labels
     ax.legend(loc='best',handlelength=0, handletextpad=0, fontsize=8)
-    ax.set_zlim(0,1.1)
+    # ax.set_zlim(0,1.1)
     ax.set_xlim(lower_x,upper_x)
     ax.set_ylim(lower_y,upper_y)
     ax.set_xlabel("x / cm")

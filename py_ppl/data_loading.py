@@ -307,8 +307,8 @@ def hits_to_fluency(neutron_hits, timing_pulses, line_count, dt_timing=0.0):
         timeborders = np.linspace(start, end, line_count + 1)
         for i in range(0, line_count):
             mask = (times >= timeborders[i]) & (times <= timeborders[i + 1])
-            # fluencies.append(len(times[mask]) / delta_t) # why divide by delta_t?
-            fluencies.append(len(times[mask]) )
+            # fluencies.append(len(times[mask]) / delta_t) # why divide by delta_t? this gives neutrons/ second
+            fluencies.append(len(times[mask]) )            # this should give neutron counts
             # x_points.append(i if fwd else line_count - i - 1)
             # y_points.append(current_line)
             y_points.append(i if fwd else line_count - i - 1)
@@ -317,9 +317,9 @@ def hits_to_fluency(neutron_hits, timing_pulses, line_count, dt_timing=0.0):
         current_line += 1
         fwd = not fwd
 
-    norm_constant = max(fluencies)
-    fluencies = list(np.array(fluencies) / norm_constant)    # normalize fluencies
-    # fluencies = list(np.array(fluencies))                       # dont normalize
+    norm_constant = max(fluencies)                           # normalization constant
+    # fluencies = list(np.array(fluencies) / norm_constant)    # normalized counts
+    fluencies = list(np.array(fluencies))                  # dont normalize
 
     # write result
     # csv_print(argv[2], x_points, y_points, fluencies)

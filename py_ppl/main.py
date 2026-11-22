@@ -96,8 +96,8 @@ def main():
     print(info)
 
     print("Normalization constant is: " + str(norm_constant))
-    print(np.min(result[1]))
-    print(np.max(result[1]))
+    print("Minimal uncertainty is: " + str(np.min(result[1])))
+    print("Maximal uncertainty is: " + str(np.max(result[1])))
 
     #RE-CONVOLUTION
     reconvolved = np.array(conv2(result[0], scint, mode='same'))
