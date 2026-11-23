@@ -42,7 +42,7 @@ def args_to_dict():
     res["n_gamma_cut"] = float(get_assign("n_gamma_cut", 0.))
     res["dt_timing"] = float(get_assign("dt_timing", 0.0))
     res["no_deconv"] = bool(get_assign("no_deconv", False))
-    res["scint_amp_mod"] = float(get_assign("scint_amp_mod", 0.25))
+    res["scint_amp_mod"] = float(get_assign("scint_amp_mod", 0.0))
     res["fit_beam_shape"] = bool(get_assign("fit_beam", False))
     return res
 

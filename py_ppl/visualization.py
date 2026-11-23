@@ -517,7 +517,7 @@ def plot_e(data, result, reconvolved_norm, errors, args,PGF=False):
           str(round(A_fit, A_error, sep='external_brackets')) + ' & ' + 
           str(round(x0_fit, x0_error, sep='external_brackets')) + ' & ' + 
           str(round(y0_fit, y0_error, sep='external_brackets')) + ' & ' +
-          str(round(red_chi_SG,2)) + ' \\\\'
+          str(round(red_chi_SG,3)) + ' \\\\'
          )
     print("------------------------------------")
 
